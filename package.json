@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "supabase:login": "supabase login",
+    "supabase:link": "supabase link --project-ref gpmprmejteppxxpxtlfk",
+    "supabase:db:push": "supabase db push",
+    "supabase:functions:deploy": "supabase functions deploy qa",
+    "supabase:status": "supabase projects list"
+  },
+  "devDependencies": {
+    "supabase": "^2.109.1"
+  }
+}

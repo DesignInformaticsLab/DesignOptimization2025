@@ -4,6 +4,14 @@ This repository includes a Supabase scaffold for roster-linked Q&A engagement tr
 
 The current public book still works without Supabase. Engagement logging starts only after a deployed Supabase Edge Function URL is pasted into the Q&A widget in `docs/gradient_descent_2025.md`.
 
+Project created for this course:
+
+```text
+Project ref: gpmprmejteppxxpxtlfk
+Project URL: https://gpmprmejteppxxpxtlfk.supabase.co
+Function URL: https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa
+```
+
 ## What Is Already Implemented
 
 - Database migration for:
@@ -44,52 +52,58 @@ Generated answers are intentionally not stored.
 
 ### 1. Create Supabase Project
 
-You do this once in the Supabase web dashboard.
+Done.
 
-1. Go to https://supabase.com/dashboard.
-2. Create a free project.
-3. Save the project reference ID. It is the short ID in URLs like:
-
-   ```text
-   https://supabase.com/dashboard/project/<project-ref>
-   ```
-
-4. Also note the function URL pattern:
-
-   ```text
-   https://<project-ref>.supabase.co/functions/v1/qa
-   ```
-
-Send me the `<project-ref>` after the project exists. Do not send service-role keys in chat unless you are comfortable with that security risk.
+The project ref is `gpmprmejteppxxpxtlfk`.
 
 ### 2. Install Supabase CLI
 
-The local machine currently does not have the `supabase` command installed.
-
-Official Supabase docs show the npm-based install path:
+Done. The CLI is installed as a local project dev dependency:
 
 ```bash
 npm install supabase --save-dev
 ```
 
-After that, commands can be run as:
+Use it through npm scripts or `npx`:
 
 ```bash
 npx supabase --version
+npm run supabase:status
 ```
-
-Alternative: install the CLI globally or through Homebrew if you prefer. The npm local install is easiest to keep project-scoped.
 
 ### 3. Log In And Link The Project
 
-Run from the repository root:
+This still needs your Supabase access token. Applying migrations through the CLI can also require the project database password.
+
+This terminal cannot complete Supabase's interactive browser prompt. Use one of these two options.
+
+Option A: run locally in your terminal:
 
 ```bash
 npx supabase login
-npx supabase link --project-ref <project-ref>
+npm run supabase:link
 ```
 
-`supabase login` opens a browser/token flow. `supabase link` connects this local `supabase/` folder to the remote project.
+If `supabase link` asks for a database password, use the database password you set when creating the Supabase project. You can also pass it explicitly:
+
+```bash
+npx supabase link --project-ref gpmprmejteppxxpxtlfk --password '<database-password>'
+```
+
+Option B: create a token in the Supabase dashboard and let me run noninteractive login:
+
+1. Go to https://supabase.com/dashboard/account/tokens.
+2. Create a new access token.
+3. Send it to me only if you are comfortable sharing it in this environment.
+4. If you also want me to run `db push`, I will need the project database password as well. I do not recommend sharing long-lived passwords in chat; running the link/db commands locally is safer.
+5. With the token, I can run:
+
+   ```bash
+   npx supabase login --token <token>
+   npx supabase link --project-ref gpmprmejteppxxpxtlfk --password '<database-password>'
+   ```
+
+Do not commit the token. Revoke it after setup if you share it.
 
 ### 4. Apply The Database Migration
 
@@ -102,7 +116,7 @@ supabase/migrations/20260711162000_engagement_tracking.sql
 Apply it:
 
 ```bash
-npx supabase db push
+npm run supabase:db:push
 ```
 
 Expected result: Supabase creates `students`, `lectures`, `qa_events`, and `engagement_summary`.
@@ -149,13 +163,13 @@ Do not commit API keys, service-role keys, or `.env` files.
 Deploy only the Q&A function:
 
 ```bash
-npx supabase functions deploy qa
+npm run supabase:functions:deploy
 ```
 
 The deployed function URL will be:
 
 ```text
-https://<project-ref>.supabase.co/functions/v1/qa
+https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa
 ```
 
 ### 8. Connect The Book To Supabase
@@ -169,7 +183,7 @@ data-engagement-endpoint=""
 Replace it with:
 
 ```html
-data-engagement-endpoint="https://<project-ref>.supabase.co/functions/v1/qa"
+data-engagement-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa"
 ```
 
 After this is committed and deployed, the Q&A widget will show first name, last name, and university ID fields.
@@ -201,7 +215,7 @@ GitHub Pages will rebuild the book.
 
 ## What I Can Do After You Create Supabase
 
-Once you give me the project ref and confirm the CLI login works, I can:
+Once CLI login works, I can:
 
 - run `npx supabase link`
 - run `npx supabase db push`
