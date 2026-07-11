@@ -1,0 +1,45 @@
+{
+  "source_deck": "Slides/gradient_descent_2025.pptx",
+  "public_page_goal": "Minimal interactive Markdown lecture notes for MAE598/494 Design Optimization gradient descent material.",
+  "slide_outline": [
+    "Gradient descent update and steepest descent interpretation.",
+    "Termination criterion and first/second-order optimality conditions.",
+    "Line search and Armijo backtracking.",
+    "Convergence assumptions: L-smoothness, convexity, strong convexity, Hessian Lipschitz continuity.",
+    "Convergence rates for nonconvex smooth, convex smooth, and strongly convex smooth objectives.",
+    "Ill-conditioning slows gradient descent.",
+    "Conjugate gradient for symmetric positive definite quadratic objectives.",
+    "Newton's method and quadratic local convergence.",
+    "Trust-region methods interpolate between Newton-like and gradient-like steps.",
+    "BFGS and L-BFGS approximate Hessian information using gradient history."
+  ],
+  "related_notebooks": [
+    {
+      "path": "Demo/Gradient_Optimization_Walkthrough.ipynb",
+      "role": "Primary source notebook for this page.",
+      "relevant_modules": [
+        "Module 1: Vanilla gradient descent with fixed step size.",
+        "Module 2: Steepest descent and preconditioning.",
+        "Module 3: Exact and Armijo line search.",
+        "Module 4: Conjugate gradient compared with GD on ill-conditioned quadratics.",
+        "Module 5: Newton's method.",
+        "Module 6: Trust-region methods.",
+        "Module 8: BFGS, L-BFGS, and SR1."
+      ]
+    },
+    {
+      "path": "Demo/logreg_optimizers_2d.ipynb",
+      "role": "Application notebook comparing GD, L-BFGS, and trust-region methods on ill-conditioned logistic regression."
+    },
+    {
+      "path": "Demo/portfolio_simplex_optimizers.ipynb",
+      "role": "Application notebook with projected/conditional gradient methods and Armijo line search on a portfolio simplex problem."
+    }
+  ],
+  "answering_rules": [
+    "Answer as a concise teaching assistant for an optimization class.",
+    "Use the supplied context first. If context is insufficient, say what is missing.",
+    "Prefer equations and small examples over vague descriptions.",
+    "Do not claim to have executed notebook code unless the user explicitly ran it."
+  ]
+}

@@ -1,0 +1,29 @@
+title: Design Optimization Interactive Notes
+author: Yi Ren
+copyright: "2026"
+
+execute:
+  execute_notebooks: cache
+  timeout: 180
+
+repository:
+  url: https://github.com/DesignInformaticsLab/DesignOptimization2025
+  path_to_book: docs
+  branch: main
+
+launch_buttons:
+  notebook_interface: jupyterlab
+  binderhub_url: https://mybinder.org
+  thebe: true
+
+html:
+  use_repository_button: true
+  use_issues_button: true
+  extra_footer: "Interactive demo generated from the course slide deck and demo notebooks."
+
+sphinx:
+  config:
+    html_js_files:
+      - qa.js
+    html_css_files:
+      - custom.css
