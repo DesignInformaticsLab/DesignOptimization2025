@@ -16,13 +16,18 @@
   }
 
   function setAnswer(widget, text) {
-    widget.querySelector(".qa-answer").textContent = text;
+    const answer = widget.querySelector(".qa-answer");
+    answer.textContent = text;
+    if (window.MathJax?.typesetPromise) {
+      window.MathJax.typesetPromise([answer]).catch(() => {});
+    }
   }
 
   async function ask(widget) {
     const question = widget.querySelector(".qa-question").value.trim();
     const model = widget.querySelector(".qa-model").value.trim() || "openai";
     const button = widget.querySelector(".qa-submit");
+    const startedAt = performance.now();
     if (!question) {
       setAnswer(widget, "Enter a question first.");
       return;
@@ -42,7 +47,8 @@
             role: "system",
             content:
               "You are a concise teaching assistant for a graduate design optimization class. " +
-              "Use the supplied lecture notes and notebook context. If the answer is not supported by context, say what is missing.",
+              "Use the supplied lecture notes and notebook context. If the answer is not supported by context, say what is missing. " +
+              "When writing equations, use LaTeX delimiters \\(...\\) for inline math and \\[...\\] for display math so MathJax can render them.",
           },
           {
             role: "user",
@@ -70,7 +76,8 @@
         data?.choices?.[0]?.message?.content ||
         data?.choices?.[0]?.text ||
         JSON.stringify(data, null, 2);
-      setAnswer(widget, answer.trim());
+      const elapsedSeconds = ((performance.now() - startedAt) / 1000).toFixed(1);
+      setAnswer(widget, `${answer.trim()}\n\nAnswered in ${elapsedSeconds}s.`);
     } catch (error) {
       setAnswer(
         widget,

@@ -364,10 +364,16 @@ $m\in[3,20]$, so it is practical when $d_x$ is very large.
     <textarea class="qa-question" rows="4" placeholder="Ask about Armijo, convergence rates, Newton, BFGS, or the demo notebooks."></textarea>
   </label>
   <div class="qa-controls">
-    <label>Model <input class="qa-model" value="openai" /></label>
+    <label>
+      Model
+      <select class="qa-model">
+        <option value="openai-fast" selected>openai-fast</option>
+        <option value="openai">openai</option>
+      </select>
+    </label>
     <button class="qa-submit" type="button">Ask</button>
   </div>
-  <p class="qa-note">Default endpoint: Pollinations text API. Do not enter sensitive data.</p>
-  <pre class="qa-answer" aria-live="polite"></pre>
+  <p class="qa-note">Endpoint: Pollinations text API. Equations render with MathJax when the model returns LaTeX. Do not enter sensitive data.</p>
+  <div class="qa-answer" aria-live="polite"></div>
 </div>
 ```
