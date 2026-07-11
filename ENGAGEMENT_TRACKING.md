@@ -12,6 +12,27 @@ Project URL: https://gpmprmejteppxxpxtlfk.supabase.co
 Function URL: https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa
 ```
 
+## Current Deployment Status
+
+Done:
+
+- Supabase project exists and is linked locally.
+- Supabase CLI is installed in this repo.
+- Edge Function secrets are set:
+  - `QA_MODEL_ENDPOINT=https://text.pollinations.ai/openai`
+  - `ALLOWED_ORIGIN=https://designinformaticslab.github.io`
+- Edge Function `qa` is deployed.
+- Function smoke test passes:
+  - `OPTIONS /functions/v1/qa` returns `200`
+  - empty `POST /functions/v1/qa` returns the expected validation error
+
+Still needed before enabling the live book endpoint:
+
+- Apply `supabase/migrations/20260711162000_engagement_tracking.sql`.
+- Import the roster into `public.students`.
+- Test one real roster student.
+- Paste the function URL into `docs/gradient_descent_2025.md`.
+
 ## What Is Already Implemented
 
 - Database migration for:
@@ -73,9 +94,9 @@ npm run supabase:status
 
 ### 3. Log In And Link The Project
 
-This still needs your Supabase access token. Applying migrations through the CLI can also require the project database password.
+Done enough for API operations. The CLI can list the linked project and deploy functions.
 
-This terminal cannot complete Supabase's interactive browser prompt. Use one of these two options.
+Applying migrations through the CLI still needs the remote Postgres connection to succeed. If `db push` hangs at `Initialising login role...`, use the SQL-editor fallback in step 4 or relink with the database password.
 
 Option A: run locally in your terminal:
 
@@ -90,11 +111,11 @@ If `supabase link` asks for a database password, use the database password you s
 npx supabase link --project-ref gpmprmejteppxxpxtlfk --password '<database-password>'
 ```
 
-Option B: create a token in the Supabase dashboard and let me run noninteractive login:
+Token fallback:
 
 1. Go to https://supabase.com/dashboard/account/tokens.
 2. Create a new access token.
-3. Send it to me only if you are comfortable sharing it in this environment.
+3. Use it locally, or send it to me only if you are comfortable sharing it in this environment.
 4. If you also want me to run `db push`, I will need the project database password as well. I do not recommend sharing long-lived passwords in chat; running the link/db commands locally is safer.
 5. With the token, I can run:
 
@@ -120,6 +141,14 @@ npm run supabase:db:push
 ```
 
 Expected result: Supabase creates `students`, `lectures`, `qa_events`, and `engagement_summary`.
+
+If `db push` hangs, use this dashboard fallback:
+
+1. Open https://supabase.com/dashboard/project/gpmprmejteppxxpxtlfk/sql/new.
+2. Open `supabase/migrations/20260711162000_engagement_tracking.sql` locally.
+3. Paste the full SQL into the SQL editor.
+4. Click `Run`.
+5. Confirm the tables/views exist in Table Editor.
 
 ### 5. Import The Roster
 

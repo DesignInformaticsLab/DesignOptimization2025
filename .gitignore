@@ -1,5 +1,6 @@
 .DS_Store
 node_modules/
 docs/_build/
+supabase/.temp/
 supabase/functions/.env
 supabase/functions/.env.*

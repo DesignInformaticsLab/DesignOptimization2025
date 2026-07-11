@@ -41,6 +41,26 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function errorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    if (typeof record.message === "string") {
+      return record.message;
+    }
+    if (typeof record.error === "string") {
+      return record.error;
+    }
+    return JSON.stringify(record);
+  }
+  return String(error);
+}
+
 function requiredText(value: unknown, field: string, maxLength: number) {
   if (typeof value !== "string") {
     throw new Error(`${field} is required`);
@@ -250,9 +270,10 @@ Deno.serve(async (request) => {
     } catch (error) {
       quality = {
         ...quality,
-        rationale: `Quality scoring failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`.slice(0, 240),
+        rationale: `Quality scoring failed: ${errorMessage(error)}`.slice(
+          0,
+          240,
+        ),
       };
     }
 
@@ -287,9 +308,6 @@ Deno.serve(async (request) => {
       },
     });
   } catch (error) {
-    return jsonResponse(
-      { error: error instanceof Error ? error.message : String(error) },
-      400,
-    );
+    return jsonResponse({ error: errorMessage(error) }, 400);
   }
 });
