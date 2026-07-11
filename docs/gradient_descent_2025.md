@@ -354,10 +354,24 @@ $m\in[3,20]$, so it is practical when $d_x$ is very large.
 ## Ask the lecture notes
 
 ```{raw} html
-<div class="qa-widget" data-context-file="_static/gradient_descent_context.json">
+<div class="qa-widget" data-context-file="_static/gradient_descent_context.json" data-lecture-id="gradient_descent_2025" data-engagement-endpoint="">
   <div class="qa-header">
     <strong>Q&amp;A</strong>
     <span>Uses this page, slide outline, and related notebook summaries as context.</span>
+  </div>
+  <div class="qa-identity">
+    <label>
+      First name
+      <input class="qa-first-name" autocomplete="given-name" />
+    </label>
+    <label>
+      Last name
+      <input class="qa-last-name" autocomplete="family-name" />
+    </label>
+    <label>
+      University ID
+      <input class="qa-university-id" autocomplete="username" />
+    </label>
   </div>
   <label>
     Question
@@ -373,7 +387,7 @@ $m\in[3,20]$, so it is practical when $d_x$ is very large.
     </label>
     <button class="qa-submit" type="button">Ask</button>
   </div>
-  <p class="qa-note">Endpoint: Pollinations text API. Equations render with MathJax when the model returns LaTeX. Do not enter sensitive data.</p>
+  <p class="qa-note">Equations render with MathJax when the model returns LaTeX. Engagement logging starts once the course Supabase endpoint is configured.</p>
   <div class="qa-answer" aria-live="polite"></div>
 </div>
 ```

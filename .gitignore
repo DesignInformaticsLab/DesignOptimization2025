@@ -1,2 +1,4 @@
 .DS_Store
 docs/_build/
+supabase/functions/.env
+supabase/functions/.env.*

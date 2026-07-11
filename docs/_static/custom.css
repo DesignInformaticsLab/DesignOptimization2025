@@ -27,10 +27,24 @@
   margin: 0.5rem 0;
 }
 
+.qa-identity {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.qa-no-engagement .qa-identity {
+  display: none;
+}
+
+.qa-identity input,
 .qa-question {
   box-sizing: border-box;
   width: 100%;
   margin-top: 0.35rem;
+}
+
+.qa-question {
   resize: vertical;
 }
 
@@ -73,4 +87,10 @@
   border-radius: 6px;
   padding: 0.75rem;
   background: white;
+}
+
+@media (max-width: 720px) {
+  .qa-identity {
+    grid-template-columns: 1fr;
+  }
 }
