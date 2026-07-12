@@ -1,2 +1,5 @@
 [functions.qa]
 verify_jwt = false
+
+[functions.engagement-report]
+verify_jwt = false

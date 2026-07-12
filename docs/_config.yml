@@ -25,5 +25,6 @@ sphinx:
   config:
     html_js_files:
       - qa.js
+      - engagement_report.js
     html_css_files:
       - custom.css

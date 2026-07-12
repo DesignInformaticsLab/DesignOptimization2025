@@ -94,3 +94,57 @@
     grid-template-columns: 1fr;
   }
 }
+
+.engagement-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+  margin: 1rem 0;
+}
+
+.engagement-controls label {
+  display: block;
+  font-weight: 600;
+}
+
+.engagement-token {
+  display: block;
+  box-sizing: border-box;
+  min-width: 18rem;
+  margin-top: 0.35rem;
+}
+
+.engagement-load {
+  cursor: pointer;
+  border: 1px solid #1f4f82;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  color: white;
+  background: #1f4f82;
+}
+
+.engagement-note,
+.engagement-meta,
+.engagement-summary {
+  color: #5b6472;
+  font-size: 0.9rem;
+}
+
+.engagement-student {
+  margin: 1.5rem 0;
+}
+
+.engagement-student h2 {
+  margin-bottom: 0.2rem;
+}
+
+.engagement-student table {
+  width: 100%;
+  font-size: 0.88rem;
+}
+
+.engagement-student th,
+.engagement-student td {
+  vertical-align: top;
+}
