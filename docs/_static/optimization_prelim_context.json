@@ -1,0 +1,22 @@
+{
+  "source_deck": "Slides/optimization_prelim_2025.pptx",
+  "public_page_goal": "Interactive Markdown lecture notes for optimization preliminaries: matrix calculus, convexity, and Taylor expansion.",
+  "slide_outline": [
+    "Gradient as first-order derivative and steepest ascent direction.",
+    "Hessian as second-order derivative and local curvature matrix.",
+    "Positive definite, positive semidefinite, negative definite, negative semidefinite, and indefinite matrices.",
+    "Convex optimization requires a convex feasible set and convex objective.",
+    "Convex set definition and closure under intersections and affine images.",
+    "Convex function definition using the chord inequality.",
+    "Strict convexity and strong convexity.",
+    "First-order convexity condition: function lies above tangent hyperplanes.",
+    "Second-order convexity condition: Hessian is positive semidefinite everywhere.",
+    "Taylor expansion as local first- and second-order approximation."
+  ],
+  "answering_rules": [
+    "Answer as a concise teaching assistant for an optimization class.",
+    "Use the supplied lecture notes first. If context is insufficient, say what is missing.",
+    "Prefer equations and small examples over vague descriptions.",
+    "Use LaTeX delimiters for math so MathJax can render the answer."
+  ]
+}

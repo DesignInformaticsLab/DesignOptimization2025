@@ -1,7 +1,6 @@
-# Design Optimization Interactive Notes
+# An Introduction to Optimization for Mechanical Engineers
 
-This is a small public demo for converting course slide decks into interactive
-Markdown notes.
+Interactive notes and live-code demos for MAE598/494 Design Optimization.
 
 ```{tableofcontents}
 ```
