@@ -2,5 +2,6 @@
 node_modules/
 docs/_build/
 supabase/.temp/
+supabase/roster_hashed*.csv
 supabase/functions/.env
 supabase/functions/.env.*

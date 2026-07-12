@@ -4,7 +4,8 @@
     "supabase:link": "supabase link --project-ref gpmprmejteppxxpxtlfk",
     "supabase:db:push": "supabase db push",
     "supabase:functions:deploy": "supabase functions deploy qa",
-    "supabase:status": "supabase projects list"
+    "supabase:status": "supabase projects list",
+    "roster:hash": "node scripts/hash-roster.mjs supabase/roster_template.csv supabase/roster_hashed.csv"
   },
   "devDependencies": {
     "supabase": "^2.109.1"

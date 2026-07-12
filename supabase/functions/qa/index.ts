@@ -94,6 +94,43 @@ function messagesToPrompt(messages: ChatMessage[]) {
     .slice(0, 6000);
 }
 
+function normalizeIdentityPart(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+async function sha256Hex(text: string) {
+  const bytes = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function studentHashSalt() {
+  const salt = Deno.env.get("STUDENT_ID_HASH_SALT");
+  if (!salt) {
+    throw new Error("STUDENT_ID_HASH_SALT is not configured");
+  }
+  return salt;
+}
+
+async function studentHashes(
+  universityId: string,
+  firstName: string,
+  lastName: string,
+) {
+  const salt = studentHashSalt();
+  const normalizedId = normalizeIdentityPart(universityId);
+  const normalizedFirst = normalizeIdentityPart(firstName);
+  const normalizedLast = normalizeIdentityPart(lastName);
+  return {
+    universityIdHash: await sha256Hex(`${salt}:student_id:${normalizedId}`),
+    identityHash: await sha256Hex(
+      `${salt}:student_identity:${normalizedId}:${normalizedFirst}:${normalizedLast}`,
+    ),
+  };
+}
+
 async function callModel(
   model: string,
   messages: ChatMessage[],
@@ -270,10 +307,15 @@ Deno.serve(async (request) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
+    const { universityIdHash, identityHash } = await studentHashes(
+      universityId,
+      firstName,
+      lastName,
+    );
     const { data: student, error: studentError } = await supabase
       .from("students")
-      .select("id, first_name, last_name, active")
-      .eq("university_id", universityId)
+      .select("id, identity_hash, active")
+      .eq("university_id_hash", universityIdHash)
       .eq("active", true)
       .maybeSingle();
 
@@ -287,8 +329,7 @@ Deno.serve(async (request) => {
       );
     }
     if (
-      student.first_name.trim().toLowerCase() !== firstName.toLowerCase() ||
-      student.last_name.trim().toLowerCase() !== lastName.toLowerCase()
+      student.identity_hash !== identityHash
     ) {
       return jsonResponse({
         error: "Name does not match the roster entry for this university ID",

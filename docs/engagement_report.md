@@ -3,6 +3,12 @@
 This instructor-facing report shows recorded Q&A activity grouped by student.
 Questions are ranked by the current quality score.
 
+Supabase stores pseudonymous student keys, initials, section, and Q&A activity.
+It does not store raw university IDs or full names. To view actual names and
+IDs on this page, select the original roster CSV and enter the private roster
+hash salt. That join happens locally in your browser; the roster file and salt
+are not uploaded by this page.
+
 ```{raw} html
 <div class="engagement-report" data-report-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/engagement-report">
   <div class="engagement-controls">
@@ -10,9 +16,17 @@ Questions are ranked by the current quality score.
       Instructor report token
       <input class="engagement-token" type="password" autocomplete="off" />
     </label>
+    <label>
+      Local roster CSV
+      <input class="engagement-roster" type="file" accept=".csv,text/csv" />
+    </label>
+    <label>
+      Roster hash salt
+      <input class="engagement-hash-salt" type="password" autocomplete="off" />
+    </label>
     <button class="engagement-load" type="button">Load report</button>
   </div>
-  <p class="engagement-note">The report token is sent to the Supabase Edge Function as a bearer token. It is not stored by this page.</p>
+  <p class="engagement-note">The report token is sent to the Supabase Edge Function as a bearer token. The optional roster CSV and hash salt stay in this browser tab and are only used to display actual names and IDs locally.</p>
   <div class="engagement-summary" aria-live="polite"></div>
   <div class="engagement-table"></div>
 </div>

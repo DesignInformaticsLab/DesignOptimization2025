@@ -26,7 +26,8 @@ Done:
   - `OPTIONS /functions/v1/qa` returns `200`
   - empty `POST /functions/v1/qa` returns the expected validation error
 - Database migration is applied.
-- Template roster rows from `supabase/roster_template.csv` are imported.
+- Template roster rows from `supabase/roster_template.csv` are converted to a
+  hashed roster before import.
 - Full backend test with Ada Lovelace succeeds and writes to `qa_events`.
 - Q&A now returns after answer generation only. Question quality is evaluated once by AI in the background and updates the stored row after the answer is already returned.
 
@@ -38,12 +39,12 @@ Still needed before enabling the live book endpoint:
 ## What Is Already Implemented
 
 - Database migration for:
-  - `public.students`: course roster
+  - `public.students`: pseudonymous course roster
   - `public.lectures`: lecture/page registry
   - `public.qa_events`: one logged Q&A interaction per row
   - `public.engagement_summary`: roster-level reporting view
 - Supabase Edge Function:
-  - validates first name + last name + university ID against the roster
+  - validates first name + last name + university ID against the hashed roster
   - calls the AI endpoint to answer the question
   - schedules one AI quality evaluation after returning the answer
   - stores timing and quality metrics
@@ -161,9 +162,23 @@ Template roster imported. Replace it with the real roster when available.
 Use this CSV column format:
 
 ```csv
+Keep the raw roster locally in this format:
+
+```csv
 university_id,first_name,last_name,section,active
 123456789,Ada,Lovelace,MAE598,true
 987654321,Grace,Hopper,MAE598,true
+```
+
+Before importing into Supabase, create a hashed roster:
+
+```bash
+STUDENT_ID_HASH_SALT="your-private-salt" npm run roster:hash
+```
+
+Import the generated `supabase/roster_hashed.csv` into `public.students`.
+Supabase should receive columns named `university_id_hash`, `identity_hash`,
+`first_initial`, `last_initial`, `section`, and `active`.
 ```
 
 Recommended beginner path:
@@ -172,7 +187,8 @@ Recommended beginner path:
 2. Go to Table Editor.
 3. Open `students`.
 4. Import CSV.
-5. Make sure `university_id`, `first_name`, and `last_name` are populated.
+5. Make sure `university_id_hash`, `identity_hash`, `first_initial`, and
+   `last_initial` are populated.
 
 Roster matching is case-insensitive for names, but university ID must match exactly after trimming whitespace.
 

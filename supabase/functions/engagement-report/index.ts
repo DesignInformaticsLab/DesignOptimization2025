@@ -79,9 +79,9 @@ Deno.serve(async (request) => {
         quality_rationale,
         created_at,
         students!inner (
-          university_id,
-          first_name,
-          last_name,
+          university_id_hash,
+          first_initial,
+          last_initial,
           section
         )
       `)
@@ -112,18 +112,18 @@ Deno.serve(async (request) => {
         quality_rationale: event.quality_rationale,
         created_at: event.created_at,
         student: {
-          university_id: student?.university_id,
-          first_name: student?.first_name,
-          last_name: student?.last_name,
+          student_key: student?.university_id_hash,
+          first_initial: student?.first_initial,
+          last_initial: student?.last_initial,
           section: student?.section,
         },
       };
     });
 
     const students = new Map<string, {
-      university_id: string;
-      first_name: string;
-      last_name: string;
+      student_key: string;
+      first_initial: string;
+      last_initial: string;
       section: string | null;
       question_count: number;
       avg_quality_score: number | null;
@@ -133,12 +133,12 @@ Deno.serve(async (request) => {
     }>();
 
     for (const event of events) {
-      const id = event.student.university_id || "unknown";
+      const id = event.student.student_key || "unknown";
       if (!students.has(id)) {
         students.set(id, {
-          university_id: id,
-          first_name: event.student.first_name || "",
-          last_name: event.student.last_name || "",
+          student_key: id,
+          first_initial: event.student.first_initial || "",
+          last_initial: event.student.last_initial || "",
           section: event.student.section || null,
           question_count: 0,
           avg_quality_score: null,
