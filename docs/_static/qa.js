@@ -10,7 +10,7 @@
       }
     }
     return {
-      page_excerpt: pageText.slice(0, 12000),
+      page_excerpt: pageText.slice(0, 6000),
       metadata: context,
     };
   }

@@ -28,6 +28,7 @@ Done:
 - Database migration is applied.
 - Template roster rows from `supabase/roster_template.csv` are imported.
 - Full backend test with Ada Lovelace succeeds and writes to `qa_events`.
+- Q&A now returns after answer generation only. Question quality uses a fast local rubric by default, avoiding a second synchronous AI call.
 
 Still needed before enabling the live book endpoint:
 
@@ -267,6 +268,23 @@ The initial engagement metrics are:
 - `quality_effort`: whether the question shows thoughtful engagement
 
 Use `public.engagement_summary` for reporting.
+
+## Latency Design
+
+The first deployed version waited for two model calls before returning to the student:
+
+1. generate the answer
+2. evaluate question quality
+
+That made normal questions take roughly 35 to 45 seconds. The current version returns as soon as the answer is ready and scores question quality with a fast deterministic rubric. In the test question "What is the definition of gradient?", backend time dropped to about 6 seconds.
+
+If you later prefer AI-scored quality over fast response time, set:
+
+```bash
+npx supabase secrets set QA_QUALITY_MODE=ai
+```
+
+With `QA_QUALITY_MODE=ai`, the function will again wait for the second quality-scoring model call before returning the answer.
 
 ## Implementation Challenges
 

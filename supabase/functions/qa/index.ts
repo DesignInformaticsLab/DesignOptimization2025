@@ -204,6 +204,63 @@ function parseQuality(text: string): QualityScore {
   }
 }
 
+function heuristicQuality(question: string): QualityScore {
+  const normalized = question.trim().toLowerCase();
+  const words = normalized.split(/\s+/).filter(Boolean);
+  const mathTerms = [
+    "gradient",
+    "hessian",
+    "convex",
+    "armijo",
+    "line search",
+    "newton",
+    "bfgs",
+    "descent",
+    "convergence",
+    "condition",
+    "objective",
+    "derivative",
+    "minimizer",
+    "optimization",
+  ];
+  const questionWords = [
+    "why",
+    "how",
+    "what",
+    "when",
+    "derive",
+    "prove",
+    "compare",
+  ];
+  const hasMathTerm = mathTerms.some((term) => normalized.includes(term));
+  const hasQuestionWord = questionWords.some((term) =>
+    normalized.includes(term)
+  );
+  const asksMechanism = /\bwhy\b|\bhow\b|\bderive\b|\bprove\b|\bcompare\b/.test(
+    normalized,
+  );
+
+  const relevance = hasMathTerm ? 3 : 1;
+  const specificity = words.length >= 12 ? 3 : words.length >= 6 ? 2 : 1;
+  const mathDepth = asksMechanism && hasMathTerm ? 3 : hasMathTerm ? 2 : 1;
+  const effort = hasQuestionWord && words.length >= 8
+    ? 3
+    : words.length >= 4
+    ? 2
+    : 1;
+  const score = (relevance + specificity + mathDepth + effort) / 4;
+
+  return {
+    score,
+    relevance,
+    specificity,
+    math_depth: mathDepth,
+    effort,
+    rationale:
+      "Fast rubric score based on relevance to optimization terms, specificity, mathematical depth, and effort.",
+  };
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -258,6 +315,7 @@ Deno.serve(async (request) => {
     }
 
     const context = body.context ?? {};
+    const answerMaxTokens = Number(Deno.env.get("QA_ANSWER_MAX_TOKENS") || 450);
     const answerStartedAt = Date.now();
     const answer = await callModel(model, [
       {
@@ -274,44 +332,39 @@ Deno.serve(async (request) => {
           "\n\nStudent question:\n" +
           question,
       },
-    ], 700);
+    ], Number.isFinite(answerMaxTokens) ? answerMaxTokens : 450);
     const answerElapsedMs = Date.now() - answerStartedAt;
 
-    let quality: QualityScore = {
-      score: null,
-      relevance: null,
-      specificity: null,
-      math_depth: null,
-      effort: null,
-      rationale: null,
-    };
-    let qualityElapsedMs: number | null = null;
+    let quality = heuristicQuality(question);
+    let qualityElapsedMs: number | null = 0;
 
-    try {
+    if (Deno.env.get("QA_QUALITY_MODE") === "ai") {
       const qualityStartedAt = Date.now();
-      const qualityText = await callModel(model, [
-        {
-          role: "system",
-          content:
-            "Evaluate the student's question for engagement in a math-heavy optimization course. " +
-            "Return only compact JSON with numeric fields score, relevance, specificity, math_depth, effort, each from 0 to 3, and a short rationale. " +
-            "Use 0 for off-topic or empty, 1 for vague, 2 for relevant but routine, and 3 for specific/deep/course-connected.",
-        },
-        {
-          role: "user",
-          content: `Lecture ID: ${lectureId}\nQuestion: ${question}`,
-        },
-      ], 180);
-      qualityElapsedMs = Date.now() - qualityStartedAt;
-      quality = parseQuality(qualityText);
-    } catch (error) {
-      quality = {
-        ...quality,
-        rationale: `Quality scoring failed: ${errorMessage(error)}`.slice(
-          0,
-          240,
-        ),
-      };
+      try {
+        const qualityText = await callModel(model, [
+          {
+            role: "system",
+            content:
+              "Evaluate the student's question for engagement in a math-heavy optimization course. " +
+              "Return only compact JSON with numeric fields score, relevance, specificity, math_depth, effort, each from 0 to 3, and a short rationale. " +
+              "Use 0 for off-topic or empty, 1 for vague, 2 for relevant but routine, and 3 for specific/deep/course-connected.",
+          },
+          {
+            role: "user",
+            content: `Lecture ID: ${lectureId}\nQuestion: ${question}`,
+          },
+        ], 120);
+        quality = parseQuality(qualityText);
+      } catch (error) {
+        quality = {
+          ...quality,
+          rationale: `AI quality scoring failed; used fast rubric. ${
+            errorMessage(error)
+          }`.slice(0, 240),
+        };
+      } finally {
+        qualityElapsedMs = Date.now() - qualityStartedAt;
+      }
     }
 
     const totalElapsedMs = Date.now() - startedAt;
