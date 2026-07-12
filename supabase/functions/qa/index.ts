@@ -83,6 +83,17 @@ function serviceRoleKey() {
   return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function messagesToPrompt(messages: ChatMessage[]) {
+  return messages
+    .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
+    .join("\n\n")
+    .slice(0, 6000);
+}
+
 async function callModel(
   model: string,
   messages: ChatMessage[],
@@ -91,30 +102,56 @@ async function callModel(
   const endpoint = Deno.env.get("QA_MODEL_ENDPOINT") ||
     "https://text.pollinations.ai/openai";
   const apiKey = Deno.env.get("QA_MODEL_API_KEY");
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      max_tokens: maxTokens,
-      messages,
-    }),
-  });
 
-  if (!response.ok) {
-    throw new Error(`Model request failed with HTTP ${response.status}`);
+  let lastError = "";
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        max_tokens: maxTokens,
+        messages,
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return (
+        data?.choices?.[0]?.message?.content ||
+        data?.choices?.[0]?.text ||
+        JSON.stringify(data)
+      ).trim();
+    }
+
+    lastError = `HTTP ${response.status}: ${
+      (await response.text()).slice(0, 240)
+    }`;
+    await sleep(500 * (attempt + 1));
   }
 
-  const data = await response.json();
-  return (
-    data?.choices?.[0]?.message?.content ||
-    data?.choices?.[0]?.text ||
-    JSON.stringify(data)
-  ).trim();
+  const fallbackBase = Deno.env.get("QA_TEXT_FALLBACK_ENDPOINT") ||
+    "https://text.pollinations.ai";
+  if (fallbackBase) {
+    const fallbackPrompt = messagesToPrompt(messages);
+    const fallbackResponse = await fetch(
+      `${fallbackBase.replace(/\/$/, "")}/${
+        encodeURIComponent(fallbackPrompt)
+      }`,
+    );
+    if (fallbackResponse.ok) {
+      return (await fallbackResponse.text()).trim();
+    }
+    lastError += `; fallback HTTP ${fallbackResponse.status}: ${
+      (await fallbackResponse.text()).slice(0, 240)
+    }`;
+  }
+
+  throw new Error(`Model request failed: ${lastError}`);
 }
 
 function clampScore(value: unknown) {

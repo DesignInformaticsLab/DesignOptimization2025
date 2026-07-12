@@ -354,7 +354,7 @@ $m\in[3,20]$, so it is practical when $d_x$ is very large.
 ## Ask the lecture notes
 
 ```{raw} html
-<div class="qa-widget" data-context-file="_static/gradient_descent_context.json" data-lecture-id="gradient_descent_2025" data-engagement-endpoint="">
+<div class="qa-widget" data-context-file="_static/gradient_descent_context.json" data-lecture-id="gradient_descent_2025" data-engagement-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa">
   <div class="qa-header">
     <strong>Q&amp;A</strong>
     <span>Uses this page, slide outline, and related notebook summaries as context.</span>

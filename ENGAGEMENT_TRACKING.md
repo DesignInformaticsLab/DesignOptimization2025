@@ -25,13 +25,14 @@ Done:
 - Function smoke test passes:
   - `OPTIONS /functions/v1/qa` returns `200`
   - empty `POST /functions/v1/qa` returns the expected validation error
+- Database migration is applied.
+- Template roster rows from `supabase/roster_template.csv` are imported.
+- Full backend test with Ada Lovelace succeeds and writes to `qa_events`.
 
 Still needed before enabling the live book endpoint:
 
-- Apply `supabase/migrations/20260711162000_engagement_tracking.sql`.
-- Import the roster into `public.students`.
-- Test one real roster student.
-- Paste the function URL into `docs/gradient_descent_2025.md`.
+- Replace the template roster with the real course roster.
+- Test one real roster student after the real roster is imported.
 
 ## What Is Already Implemented
 
@@ -128,6 +129,8 @@ Do not commit the token. Revoke it after setup if you share it.
 
 ### 4. Apply The Database Migration
 
+Done.
+
 The migration is already in:
 
 ```text
@@ -151,6 +154,8 @@ If `db push` hangs, use this dashboard fallback:
 5. Confirm the tables/views exist in Table Editor.
 
 ### 5. Import The Roster
+
+Template roster imported. Replace it with the real roster when available.
 
 Use this CSV column format:
 
@@ -203,19 +208,13 @@ https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa
 
 ### 8. Connect The Book To Supabase
 
-In `docs/gradient_descent_2025.md`, find:
+Done for the gradient descent lecture page.
 
-```html
-data-engagement-endpoint=""
-```
-
-Replace it with:
+In `docs/gradient_descent_2025.md`, the Q&A widget uses:
 
 ```html
 data-engagement-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa"
 ```
-
-After this is committed and deployed, the Q&A widget will show first name, last name, and university ID fields.
 
 ### 9. Test With One Roster Student
 
