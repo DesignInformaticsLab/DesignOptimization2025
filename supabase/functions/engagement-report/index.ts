@@ -177,19 +177,11 @@ Deno.serve(async (request) => {
     return jsonResponse({
       generated_at: new Date().toISOString(),
       rubric: {
-        score_range: "0 to 3",
-        score_formula:
-          "Average of relevance, specificity, math_depth, and effort.",
-        relevance:
-          "3 if the question contains an optimization/math term from the rubric list; otherwise 1.",
-        specificity:
-          "3 for 12+ words, 2 for 6-11 words, 1 for fewer than 6 words.",
-        math_depth:
-          "3 when the question asks why/how/derive/prove/compare and includes a math term; 2 when it includes a math term; otherwise 1.",
-        effort:
-          "3 when it has a question word and 8+ words, 2 for 4+ words, 1 otherwise.",
+        score_range: "1 to 5",
+        score_prompt:
+          "As an experienced educator in optimization at a top-tier institute, from 1-5 where 5 is the best, how deep do you think the student understands the materials on current page?",
         note:
-          "This is a fast deterministic engagement signal, not a high-stakes grade.",
+          "This is an AI-evaluated engagement signal from the student's question, not a high-stakes grade.",
       },
       students: studentRows,
     });

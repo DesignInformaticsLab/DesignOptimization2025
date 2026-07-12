@@ -1,5 +1,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+declare const EdgeRuntime: {
+  waitUntil(promise: Promise<unknown>): void;
+};
+
 type ChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
@@ -17,10 +21,6 @@ type AskRequest = {
 
 type QualityScore = {
   score: number | null;
-  relevance: number | null;
-  specificity: number | null;
-  math_depth: number | null;
-  effort: number | null;
   rationale: string | null;
 };
 
@@ -154,20 +154,16 @@ async function callModel(
   throw new Error(`Model request failed: ${lastError}`);
 }
 
-function clampScore(value: unknown) {
+function clampUnderstandingScore(value: unknown) {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return null;
   }
-  return Math.max(0, Math.min(3, Math.round(value)));
+  return Math.max(1, Math.min(5, Math.round(value)));
 }
 
-function parseQuality(text: string): QualityScore {
+function parseUnderstandingQuality(text: string): QualityScore {
   const fallback = {
     score: null,
-    relevance: null,
-    specificity: null,
-    math_depth: null,
-    effort: null,
     rationale: text.slice(0, 240) || null,
   };
 
@@ -178,23 +174,10 @@ function parseQuality(text: string): QualityScore {
 
   try {
     const parsed = JSON.parse(match[0]);
-    const relevance = clampScore(parsed.relevance);
-    const specificity = clampScore(parsed.specificity);
-    const mathDepth = clampScore(parsed.math_depth);
-    const effort = clampScore(parsed.effort);
-    const score =
-      typeof parsed.score === "number" && Number.isFinite(parsed.score)
-        ? Math.max(0, Math.min(3, parsed.score))
-        : [relevance, specificity, mathDepth, effort].every((v) => v !== null)
-        ? (relevance! + specificity! + mathDepth! + effort!) / 4
-        : null;
+    const score = clampUnderstandingScore(parsed.score);
 
     return {
       score,
-      relevance,
-      specificity,
-      math_depth: mathDepth,
-      effort,
       rationale: typeof parsed.rationale === "string" && parsed.rationale.trim()
         ? parsed.rationale.trim().slice(0, 240)
         : null,
@@ -204,61 +187,59 @@ function parseQuality(text: string): QualityScore {
   }
 }
 
-function heuristicQuality(question: string): QualityScore {
-  const normalized = question.trim().toLowerCase();
-  const words = normalized.split(/\s+/).filter(Boolean);
-  const mathTerms = [
-    "gradient",
-    "hessian",
-    "convex",
-    "armijo",
-    "line search",
-    "newton",
-    "bfgs",
-    "descent",
-    "convergence",
-    "condition",
-    "objective",
-    "derivative",
-    "minimizer",
-    "optimization",
-  ];
-  const questionWords = [
-    "why",
-    "how",
-    "what",
-    "when",
-    "derive",
-    "prove",
-    "compare",
-  ];
-  const hasMathTerm = mathTerms.some((term) => normalized.includes(term));
-  const hasQuestionWord = questionWords.some((term) =>
-    normalized.includes(term)
-  );
-  const asksMechanism = /\bwhy\b|\bhow\b|\bderive\b|\bprove\b|\bcompare\b/.test(
-    normalized,
-  );
-
-  const relevance = hasMathTerm ? 3 : 1;
-  const specificity = words.length >= 12 ? 3 : words.length >= 6 ? 2 : 1;
-  const mathDepth = asksMechanism && hasMathTerm ? 3 : hasMathTerm ? 2 : 1;
-  const effort = hasQuestionWord && words.length >= 8
-    ? 3
-    : words.length >= 4
-    ? 2
-    : 1;
-  const score = (relevance + specificity + mathDepth + effort) / 4;
-
-  return {
-    score,
-    relevance,
-    specificity,
-    math_depth: mathDepth,
-    effort,
-    rationale:
-      "Fast rubric score based on relevance to optimization terms, specificity, mathematical depth, and effort.",
-  };
+async function evaluateUnderstandingAndUpdate(
+  supabase: any,
+  eventId: string,
+  model: string,
+  lectureId: string,
+  question: string,
+  context: unknown,
+) {
+  const qualityStartedAt = Date.now();
+  try {
+    const qualityText = await callModel(model, [
+      {
+        role: "system",
+        content:
+          "You are an experienced educator in optimization at a top-tier institute. " +
+          "Evaluate only the student's question as evidence of how deeply the student understands the material on the current page. " +
+          "Return only compact JSON with fields: score, rationale. " +
+          "score must be an integer from 1 to 5, where 1 means very shallow or confused understanding, 3 means reasonable basic understanding, and 5 means unusually deep, precise, and conceptually connected understanding. " +
+          "The rationale should be one concise sentence.",
+      },
+      {
+        role: "user",
+        content: "Lecture ID:\n" + lectureId +
+          "\n\nCurrent page context:\n" +
+          JSON.stringify(context, null, 2).slice(0, 6000) +
+          "\n\nStudent question:\n" +
+          question,
+      },
+    ], 120);
+    const quality = parseUnderstandingQuality(qualityText);
+    const { error } = await supabase.from("qa_events").update({
+      quality_score: quality.score,
+      quality_relevance: null,
+      quality_specificity: null,
+      quality_math_depth: null,
+      quality_effort: null,
+      quality_rationale: quality.rationale,
+      quality_elapsed_ms: Date.now() - qualityStartedAt,
+    }).eq("id", eventId);
+    if (error) {
+      console.error("quality update failed", error);
+    }
+  } catch (error) {
+    const { error: updateError } = await supabase.from("qa_events").update({
+      quality_rationale: `AI understanding evaluation failed: ${
+        errorMessage(error)
+      }`.slice(0, 240),
+      quality_elapsed_ms: Date.now() - qualityStartedAt,
+    }).eq("id", eventId);
+    if (updateError) {
+      console.error("quality failure update failed", updateError);
+    }
+  }
 }
 
 Deno.serve(async (request) => {
@@ -335,66 +316,51 @@ Deno.serve(async (request) => {
     ], Number.isFinite(answerMaxTokens) ? answerMaxTokens : 450);
     const answerElapsedMs = Date.now() - answerStartedAt;
 
-    let quality = heuristicQuality(question);
-    let qualityElapsedMs: number | null = 0;
-
-    if (Deno.env.get("QA_QUALITY_MODE") === "ai") {
-      const qualityStartedAt = Date.now();
-      try {
-        const qualityText = await callModel(model, [
-          {
-            role: "system",
-            content:
-              "Evaluate the student's question for engagement in a math-heavy optimization course. " +
-              "Return only compact JSON with numeric fields score, relevance, specificity, math_depth, effort, each from 0 to 3, and a short rationale. " +
-              "Use 0 for off-topic or empty, 1 for vague, 2 for relevant but routine, and 3 for specific/deep/course-connected.",
-          },
-          {
-            role: "user",
-            content: `Lecture ID: ${lectureId}\nQuestion: ${question}`,
-          },
-        ], 120);
-        quality = parseQuality(qualityText);
-      } catch (error) {
-        quality = {
-          ...quality,
-          rationale: `AI quality scoring failed; used fast rubric. ${
-            errorMessage(error)
-          }`.slice(0, 240),
-        };
-      } finally {
-        qualityElapsedMs = Date.now() - qualityStartedAt;
-      }
-    }
-
     const totalElapsedMs = Date.now() - startedAt;
-    const { error: insertError } = await supabase.from("qa_events").insert({
-      student_id: student.id,
-      lecture_id: lectureId,
-      question,
-      model,
-      answer_elapsed_ms: answerElapsedMs,
-      quality_elapsed_ms: qualityElapsedMs,
-      total_elapsed_ms: totalElapsedMs,
-      quality_score: quality.score,
-      quality_relevance: quality.relevance,
-      quality_specificity: quality.specificity,
-      quality_math_depth: quality.math_depth,
-      quality_effort: quality.effort,
-      quality_rationale: quality.rationale,
-    });
+    const { data: event, error: insertError } = await supabase.from("qa_events")
+      .insert({
+        student_id: student.id,
+        lecture_id: lectureId,
+        question,
+        model,
+        answer_elapsed_ms: answerElapsedMs,
+        quality_elapsed_ms: null,
+        total_elapsed_ms: totalElapsedMs,
+        quality_score: null,
+        quality_relevance: null,
+        quality_specificity: null,
+        quality_math_depth: null,
+        quality_effort: null,
+        quality_rationale: "AI understanding evaluation pending.",
+      }).select("id").single();
 
     if (insertError) {
       throw insertError;
+    }
+
+    if (event?.id) {
+      const qualityTask = evaluateUnderstandingAndUpdate(
+        supabase,
+        event.id,
+        model,
+        lectureId,
+        question,
+        context,
+      );
+      EdgeRuntime.waitUntil(qualityTask);
     }
 
     return jsonResponse({
       answer,
       metrics: {
         answerElapsedMs,
-        qualityElapsedMs,
+        qualityElapsedMs: null,
         totalElapsedMs,
-        quality,
+        quality: {
+          score: null,
+          rationale:
+            "AI understanding evaluation is running in the background.",
+        },
       },
     });
   } catch (error) {

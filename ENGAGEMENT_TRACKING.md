@@ -28,7 +28,7 @@ Done:
 - Database migration is applied.
 - Template roster rows from `supabase/roster_template.csv` are imported.
 - Full backend test with Ada Lovelace succeeds and writes to `qa_events`.
-- Q&A now returns after answer generation only. Question quality uses a fast local rubric by default, avoiding a second synchronous AI call.
+- Q&A now returns after answer generation only. Question quality is evaluated once by AI in the background and updates the stored row after the answer is already returned.
 
 Still needed before enabling the live book endpoint:
 
@@ -45,7 +45,7 @@ Still needed before enabling the live book endpoint:
 - Supabase Edge Function:
   - validates first name + last name + university ID against the roster
   - calls the AI endpoint to answer the question
-  - calls the AI endpoint again to score question quality
+  - schedules one AI quality evaluation after returning the answer
   - stores timing and quality metrics
   - does not store generated answers by default
 - Static book widget:
@@ -67,7 +67,7 @@ The database stores:
 - server-side answer time
 - server-side quality-scoring time
 - total server time
-- AI question-quality score and rubric fields
+- AI understanding-quality score and rationale
 
 Generated answers are intentionally not stored.
 
@@ -261,11 +261,8 @@ The initial engagement metrics are:
 
 - `question_count`: number of questions asked per student per lecture
 - `total_answer_elapsed_ms`: server-side time spent generating answers
-- `avg_quality_score`: average AI-evaluated quality score from 0 to 3
-- `quality_relevance`: how tied the question is to the lecture
-- `quality_specificity`: how precise the question is
-- `quality_math_depth`: whether the question engages the mathematical content
-- `quality_effort`: whether the question shows thoughtful engagement
+- `avg_quality_score`: average AI-evaluated understanding score from 1 to 5
+- `quality_rationale`: short explanation from the AI evaluator
 
 Use `public.engagement_summary` for reporting.
 
@@ -276,15 +273,15 @@ The first deployed version waited for two model calls before returning to the st
 1. generate the answer
 2. evaluate question quality
 
-That made normal questions take roughly 35 to 45 seconds. The current version returns as soon as the answer is ready and scores question quality with a fast deterministic rubric. In the test question "What is the definition of gradient?", backend time dropped to about 6 seconds.
+That made normal questions take roughly 35 to 45 seconds. The current version returns as soon as the answer is ready, inserts the Q&A row with quality pending, and schedules one background AI evaluation using `EdgeRuntime.waitUntil`.
 
-If you later prefer AI-scored quality over fast response time, set:
+The evaluator prompt is:
 
-```bash
-npx supabase secrets set QA_QUALITY_MODE=ai
+```text
+As an experienced educator in optimization at a top-tier institute, from 1-5 where 5 is the best, how deep do you think the student understands the materials on current page?
 ```
 
-With `QA_QUALITY_MODE=ai`, the function will again wait for the second quality-scoring model call before returning the answer.
+The report may briefly show "Evaluation pending" immediately after a student asks a question. Refresh after a few seconds to see the AI score and rationale.
 
 ## Implementation Challenges
 

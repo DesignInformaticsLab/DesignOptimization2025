@@ -50,7 +50,7 @@
               <th>Quality</th>
               <th>Lecture</th>
               <th>Question</th>
-              <th>Rubric</th>
+              <th>AI evaluation</th>
               <th>Time</th>
               <th>Asked</th>
             </tr>
@@ -61,12 +61,7 @@
                 <td>${formatScore(question.quality_score)}</td>
                 <td>${escapeHtml(question.lecture_id)}</td>
                 <td>${escapeHtml(question.question)}</td>
-                <td>
-                  R${question.quality_relevance ?? "-"}
-                  S${question.quality_specificity ?? "-"}
-                  M${question.quality_math_depth ?? "-"}
-                  E${question.quality_effort ?? "-"}
-                </td>
+                <td>${escapeHtml(question.quality_rationale || "Evaluation pending")}</td>
                 <td>${formatMs(question.total_elapsed_ms)}</td>
                 <td>${new Date(question.created_at).toLocaleString()}</td>
               </tr>

@@ -18,25 +18,24 @@ Questions are ranked by the current quality score.
 </div>
 ```
 
-## Current quality rubric
+## Current quality metric
 
-The current production setting does **not** use a second AI call to score
-question quality, because that made the Q&A response much slower. Instead it
-uses a fast deterministic rubric with four components, each scored from 1 to 3.
-The final score is the average.
+The current quality score is a single AI-evaluated metric. The evaluator prompt
+is:
 
-| Component | Rule |
-|---|---|
-| Relevance | 3 if the question contains an optimization/math term from the rubric list; otherwise 1 |
-| Specificity | 3 for 12+ words, 2 for 6-11 words, 1 for fewer than 6 words |
-| Math depth | 3 when the question asks why/how/derive/prove/compare and includes a math term; 2 when it includes a math term; otherwise 1 |
-| Effort | 3 when it has a question word and 8+ words, 2 for 4+ words, 1 otherwise |
+> As an experienced educator in optimization at a top-tier institute, from 1-5
+> where 5 is the best, how deep do you think the student understands the
+> materials on current page?
 
-Terms currently counted as optimization/math terms:
+The score is an integer from 1 to 5:
 
-```text
-gradient, hessian, convex, armijo, line search, newton, bfgs, descent,
-convergence, condition, objective, derivative, minimizer, optimization
-```
+- `1`: very shallow or confused understanding
+- `3`: reasonable basic understanding
+- `5`: unusually deep, precise, and conceptually connected understanding
+
+The Q&A answer is returned before this evaluation runs. The evaluation is
+scheduled in the background and updates the report row once complete. This
+keeps student-facing answer latency low while still recording an AI quality
+metric.
 
 This score is an engagement signal, not a high-stakes grade.
