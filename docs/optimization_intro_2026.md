@@ -54,6 +54,12 @@ Design a structure to minimize its weight ($f$) with respect to its topology,
 shape, sizes, material, and manufacturing processes ($x$), subject to
 maximum stress, fatigue, natural frequency, and cost constraints ($g$, $h$).
 
+```{image} _static/intro_gifs/shape_optimization.gif
+:alt: Shape optimization of a structural component
+:width: 480px
+:align: center
+```
+
 **Remarks:**
 
 - Real-world design problems are always multi-objective. Objectives can be
@@ -68,6 +74,18 @@ Design a controller (e.g., a neural network parameterized by $x$) to minimize
 a control loss ($f$, e.g., target reaching, stability, energy consumption),
 subject to system dynamics and safety constraints ($g$, $h$).
 
+```{image} _static/intro_gifs/robot_control.gif
+:alt: Robot balancing via optimal control
+:width: 400px
+:align: center
+```
+
+```{image} _static/intro_gifs/power_grid_control.gif
+:alt: Power grid control optimization
+:width: 400px
+:align: center
+```
+
 **Remark:** *Reinforcement learning* solves optimal control problems with
 unknown or non-differentiable dynamics (e.g., video/board games, large language
 models, contact-rich environments).
@@ -78,14 +96,32 @@ Optimize a schedule (e.g., which cargos go to which ports, $x$) to minimize
 the risk (e.g., due to adversarial weather or attacks), subject to capacity,
 demand, and time constraints ($g$, $h$).
 
+```{image} _static/intro_gifs/shipping_routes.gif
+:alt: Shipping route optimization
+:width: 480px
+:align: center
+```
+
 ## 6. Example 4 — machine learning and AI
 
 Optimize a neural network (parameterized by $x$) to minimize an empirical
 loss ($f$, e.g., classification, regression, or distributional errors),
 subject to capacity, data, and computational constraints ($g$, $h$).
 
+```{image} _static/intro_gifs/neural_network_training.gif
+:alt: Neural network training optimization
+:width: 480px
+:align: center
+```
+
 **Remark:** *Generative AI* = optimization where a neural network is optimized
 so that its output distribution matches a data distribution.
+
+```{image} _static/intro_gifs/generative_ai.gif
+:alt: Generative AI as distribution matching
+:width: 480px
+:align: center
+```
 
 ## 7. Example 5 — zero-sum games
 
@@ -98,6 +134,12 @@ $$
 \quad \text{s.t.} \quad
 g(x, y) \le 0, \quad h(x, y) = 0.
 $$
+
+```{image} _static/intro_gifs/game_theory.gif
+:alt: Zero-sum game simulation
+:width: 480px
+:align: center
+```
 
 **Remark:** Games are becoming increasingly valuable to solve in an agentic
 world.
