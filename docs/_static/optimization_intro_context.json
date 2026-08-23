@@ -1,0 +1,24 @@
+{
+  "source_deck": "Slides/optimization_intro_2026.pptx",
+  "public_page_goal": "Interactive Markdown lecture notes for the course introduction: optimization formulation, engineering design, optimal control, operations research, ML/AI, and game theory.",
+  "slide_outline": [
+    "Standard optimization formulation: minimize f(x) subject to inequality and equality constraints.",
+    "Standing assumptions: smoothness, compactness, and feasibility.",
+    "Engineering design: topology/shape/size optimization under stress, fatigue, frequency, and cost constraints.",
+    "Multi-objective optimization and Pareto frontier exploration.",
+    "Optimal control: neural-network controllers minimizing control loss under dynamics and safety constraints.",
+    "Reinforcement learning as optimal control with unknown or non-differentiable dynamics.",
+    "Operations research: scheduling under capacity, demand, and time constraints.",
+    "Machine learning: neural network training as empirical loss minimization.",
+    "Generative AI as distribution-matching optimization.",
+    "Zero-sum games and Nash equilibrium as min-max optimization.",
+    "Class contents: optimality conditions and algorithms (convergence and rate).",
+    "Value of optimization in the AI era: AI4Science and AI4Engineering."
+  ],
+  "answering_rules": [
+    "Answer as a concise teaching assistant for an optimization class.",
+    "Use the supplied lecture notes first. If context is insufficient, say what is missing.",
+    "Prefer equations and small examples over vague descriptions.",
+    "Use LaTeX delimiters for math so MathJax can render the answer."
+  ]
+}
