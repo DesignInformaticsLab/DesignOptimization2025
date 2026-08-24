@@ -351,36 +351,21 @@ $m\in[3,20]$, so it is practical when $d_x$ is very large.
 | Trust region | Superlinear or quadratic | Yes for broad smooth cases | $O(kd_x)$ with CG |
 | L-BFGS | Superlinear under A3 | Yes with line search under A1 | $O(md_x)$ |
 
-## Ask the lecture notes
+## Q&A
 
 ```{raw} html
 <div class="qa-widget" data-context-file="_static/gradient_descent_context.json" data-lecture-id="gradient_descent_2025" data-engagement-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa">
   <div class="qa-identity">
-    <label>
-      First name
-      <input class="qa-first-name" autocomplete="given-name" />
-    </label>
-    <label>
-      Last name
-      <input class="qa-last-name" autocomplete="family-name" />
-    </label>
-    <label>
-      University ID
-      <input class="qa-university-id" autocomplete="username" />
-    </label>
+    <input class="qa-first-name" autocomplete="given-name" placeholder="First name" />
+    <input class="qa-last-name" autocomplete="family-name" placeholder="Last name" />
+    <input class="qa-university-id" autocomplete="username" placeholder="University ID" />
   </div>
-  <label>
-    Question
-    <textarea class="qa-question" rows="4" placeholder="Ask about Armijo, convergence rates, Newton, BFGS, or the demo notebooks."></textarea>
-  </label>
+  <textarea class="qa-question" rows="4" placeholder="Ask about Armijo, convergence rates, Newton, BFGS, or the demo notebooks."></textarea>
   <div class="qa-controls">
-    <label>
-      Model
-      <select class="qa-model">
-        <option value="openai-fast" selected>openai-fast</option>
-        <option value="openai">openai</option>
-      </select>
-    </label>
+    <select class="qa-model">
+      <option value="openai-fast" selected>openai-fast</option>
+      <option value="openai">openai</option>
+    </select>
     <button class="qa-submit" type="button">Ask</button>
   </div>
   <div class="qa-answer" aria-live="polite"></div>

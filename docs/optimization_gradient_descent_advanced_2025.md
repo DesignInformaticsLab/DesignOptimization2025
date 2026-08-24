@@ -316,36 +316,21 @@ how quickly it reaches a point where $\|\nabla f(x)\|$ is small in expectation.
 - Faster practical methods often trade off robustness, memory, per-iteration
   cost, and theoretical guarantees.
 
-## Ask the lecture notes
+## Q&A
 
 ```{raw} html
 <div class="qa-widget" data-context-file="_static/optimization_gradient_descent_advanced_context.json" data-lecture-id="optimization_gradient_descent_advanced_2025" data-engagement-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa">
   <div class="qa-identity">
-    <label>
-      First name
-      <input class="qa-first-name" autocomplete="given-name" />
-    </label>
-    <label>
-      Last name
-      <input class="qa-last-name" autocomplete="family-name" />
-    </label>
-    <label>
-      University ID
-      <input class="qa-university-id" autocomplete="username" />
-    </label>
+    <input class="qa-first-name" autocomplete="given-name" placeholder="First name" />
+    <input class="qa-last-name" autocomplete="family-name" placeholder="Last name" />
+    <input class="qa-university-id" autocomplete="username" placeholder="University ID" />
   </div>
-  <label>
-    Question
-    <textarea class="qa-question" rows="4" placeholder="Ask about heavy-ball, Nesterov acceleration, Adam, or stochastic gradients."></textarea>
-  </label>
+  <textarea class="qa-question" rows="4" placeholder="Ask about heavy-ball, Nesterov acceleration, Adam, or stochastic gradients."></textarea>
   <div class="qa-controls">
-    <label>
-      Model
-      <select class="qa-model">
-        <option value="openai-fast" selected>openai-fast</option>
-        <option value="openai">openai</option>
-      </select>
-    </label>
+    <select class="qa-model">
+      <option value="openai-fast" selected>openai-fast</option>
+      <option value="openai">openai</option>
+    </select>
     <button class="qa-submit" type="button">Ask</button>
   </div>
   <div class="qa-answer" aria-live="polite"></div>

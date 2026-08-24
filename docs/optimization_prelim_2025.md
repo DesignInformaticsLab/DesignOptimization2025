@@ -225,36 +225,21 @@ for name, M in matrices.items():
 - Convex functions lie below chords and above tangent hyperplanes.
 - Taylor expansion connects local calculus to optimization algorithms.
 
-## Ask the lecture notes
+## Q&A
 
 ```{raw} html
 <div class="qa-widget" data-context-file="_static/optimization_prelim_context.json" data-lecture-id="optimization_prelim_2025" data-engagement-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa">
   <div class="qa-identity">
-    <label>
-      First name
-      <input class="qa-first-name" autocomplete="given-name" />
-    </label>
-    <label>
-      Last name
-      <input class="qa-last-name" autocomplete="family-name" />
-    </label>
-    <label>
-      University ID
-      <input class="qa-university-id" autocomplete="username" />
-    </label>
+    <input class="qa-first-name" autocomplete="given-name" placeholder="First name" />
+    <input class="qa-last-name" autocomplete="family-name" placeholder="Last name" />
+    <input class="qa-university-id" autocomplete="username" placeholder="University ID" />
   </div>
-  <label>
-    Question
-    <textarea class="qa-question" rows="4" placeholder="Ask about gradients, Hessians, convexity, or Taylor expansion."></textarea>
-  </label>
+  <textarea class="qa-question" rows="4" placeholder="Ask about gradients, Hessians, convexity, or Taylor expansion."></textarea>
   <div class="qa-controls">
-    <label>
-      Model
-      <select class="qa-model">
-        <option value="openai-fast" selected>openai-fast</option>
-        <option value="openai">openai</option>
-      </select>
-    </label>
+    <select class="qa-model">
+      <option value="openai-fast" selected>openai-fast</option>
+      <option value="openai">openai</option>
+    </select>
     <button class="qa-submit" type="button">Ask</button>
   </div>
   <div class="qa-answer" aria-live="polite"></div>
