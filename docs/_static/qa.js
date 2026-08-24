@@ -51,10 +51,9 @@
   }
 
   async function askDirectModel(model, context, question) {
+    const contextStr = JSON.stringify(context, null, 2);
+    const trimmedContext = contextStr.length > 3000 ? contextStr.slice(0, 3000) + "..." : contextStr;
     const payload = {
-      model,
-      temperature: 0.2,
-      max_tokens: 700,
       messages: [
         {
           role: "system",
@@ -66,30 +65,36 @@
         {
           role: "user",
           content:
-            "Context JSON:\n" +
-            JSON.stringify(context, null, 2) +
-            "\n\nStudent question:\n" +
-            question,
+            "Context:\n" + trimmedContext +
+            "\n\nStudent question:\n" + question,
         },
       ],
+      model: model || "openai-fast",
+      temperature: 0.2,
+      max_tokens: 450,
     };
 
-    const response = await fetch("https://text.pollinations.ai/openai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
+    const body = JSON.stringify(payload);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await fetch("https://text.pollinations.ai/openai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return (
+          data?.choices?.[0]?.message?.content ||
+          data?.choices?.[0]?.text ||
+          JSON.stringify(data, null, 2)
+        ).trim();
+      }
+      if (response.status === 402 && attempt === 0) {
+        await new Promise((r) => setTimeout(r, 16000));
+        continue;
+      }
       throw new Error(`API request failed with HTTP ${response.status}`);
     }
-
-    const data = await response.json();
-    return (
-      data?.choices?.[0]?.message?.content ||
-      data?.choices?.[0]?.text ||
-      JSON.stringify(data, null, 2)
-    ).trim();
   }
 
   async function ask(widget) {
