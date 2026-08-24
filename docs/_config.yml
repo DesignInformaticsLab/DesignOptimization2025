@@ -14,7 +14,7 @@ repository:
 launch_buttons:
   notebook_interface: jupyterlab
   binderhub_url: https://mybinder.org
-  thebe: true
+  thebe: false
 
 html:
   use_repository_button: true
