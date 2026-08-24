@@ -355,10 +355,6 @@ $m\in[3,20]$, so it is practical when $d_x$ is very large.
 
 ```{raw} html
 <div class="qa-widget" data-context-file="_static/gradient_descent_context.json" data-lecture-id="gradient_descent_2025" data-engagement-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa">
-  <div class="qa-header">
-    <strong>Q&amp;A</strong>
-    <span>Uses this page, slide outline, and related notebook summaries as context.</span>
-  </div>
   <div class="qa-identity">
     <label>
       First name
@@ -387,7 +383,6 @@ $m\in[3,20]$, so it is practical when $d_x$ is very large.
     </label>
     <button class="qa-submit" type="button">Ask</button>
   </div>
-  <p class="qa-note">Equations render with MathJax when the model returns LaTeX. Engagement logging starts once the course Supabase endpoint is configured.</p>
   <div class="qa-answer" aria-live="polite"></div>
 </div>
 ```

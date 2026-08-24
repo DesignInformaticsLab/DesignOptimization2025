@@ -229,10 +229,6 @@ for name, M in matrices.items():
 
 ```{raw} html
 <div class="qa-widget" data-context-file="_static/optimization_prelim_context.json" data-lecture-id="optimization_prelim_2025" data-engagement-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa">
-  <div class="qa-header">
-    <strong>Q&amp;A</strong>
-    <span>Uses this page and the slide outline as context.</span>
-  </div>
   <div class="qa-identity">
     <label>
       First name
@@ -261,7 +257,6 @@ for name, M in matrices.items():
     </label>
     <button class="qa-submit" type="button">Ask</button>
   </div>
-  <p class="qa-note">Equations render with MathJax when the model returns LaTeX. Questions are logged for engagement tracking after roster verification.</p>
   <div class="qa-answer" aria-live="polite"></div>
 </div>
 ```
