@@ -59,7 +59,7 @@
   font-size: 0.875rem;
   color: #1a1a1a;
   background: transparent;
-  resize: vertical;
+  resize: none;
 }
 
 .qa-question::placeholder {

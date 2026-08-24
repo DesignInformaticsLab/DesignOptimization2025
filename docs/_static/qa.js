@@ -114,34 +114,44 @@
 
     try {
       const context = await loadContext(widget);
+      let answer = "";
+      let source = "";
       if (endpoint) {
         saveIdentity(identity);
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...identity,
-            lectureId,
-            question,
-            model,
-            context,
-          }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data?.error || `API request failed with HTTP ${response.status}`);
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...identity,
+              lectureId,
+              question,
+              model,
+              context,
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data?.error || `HTTP ${response.status}`);
+          }
+          const elapsedSeconds = ((data?.metrics?.totalElapsedMs || 0) / 1000).toFixed(1);
+          answer = data.answer.trim();
+          source = `Answered in ${elapsedSeconds}s.`;
+        } catch {
+          answer = await askDirectModel(model, context, question);
+          const elapsedSeconds = ((performance.now() - startedAt) / 1000).toFixed(1);
+          source = `Answered in ${elapsedSeconds}s (direct, engagement not logged).`;
         }
-        const elapsedSeconds = ((data?.metrics?.totalElapsedMs || 0) / 1000).toFixed(1);
-        setAnswer(widget, `${data.answer.trim()}\n\nAnswered in ${elapsedSeconds}s.`);
       } else {
-        const answer = await askDirectModel(model, context, question);
+        answer = await askDirectModel(model, context, question);
         const elapsedSeconds = ((performance.now() - startedAt) / 1000).toFixed(1);
-        setAnswer(widget, `${answer}\n\nAnswered in ${elapsedSeconds}s. Engagement logging is not configured yet.`);
+        source = `Answered in ${elapsedSeconds}s.`;
       }
+      setAnswer(widget, `${answer}\n\n${source}`);
     } catch (error) {
       setAnswer(
         widget,
-        "The Q&A request failed. Check network access, browser CORS policy, or the configured model.\n\n" +
+        "The Q&A request failed. Check network access or try again.\n\n" +
           error.message
       );
     } finally {
@@ -157,7 +167,8 @@
       }
       widget.querySelector(".qa-submit")?.addEventListener("click", () => ask(widget));
       widget.querySelector(".qa-question")?.addEventListener("keydown", (event) => {
-        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
           ask(widget);
         }
       });
