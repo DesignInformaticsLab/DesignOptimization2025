@@ -152,9 +152,7 @@
   function init() {
     document.querySelectorAll(".qa-widget").forEach((widget) => {
       const endpoint = widget.getAttribute("data-engagement-endpoint")?.trim();
-      if (endpoint) {
-        restoreIdentity(widget);
-      } else {
+      if (!endpoint) {
         widget.classList.add("qa-no-engagement");
       }
       widget.querySelector(".qa-submit")?.addEventListener("click", () => ask(widget));

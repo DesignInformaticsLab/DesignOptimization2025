@@ -325,13 +325,15 @@ how quickly it reaches a point where $\|\nabla f(x)\|$ is small in expectation.
     <input class="qa-last-name" autocomplete="family-name" placeholder="Last name" />
     <input class="qa-university-id" autocomplete="username" placeholder="University ID" />
   </div>
-  <textarea class="qa-question" rows="4" placeholder="Ask about heavy-ball, Nesterov acceleration, Adam, or stochastic gradients."></textarea>
-  <div class="qa-controls">
-    <select class="qa-model">
-      <option value="openai-fast" selected>openai-fast</option>
-      <option value="openai">openai</option>
-    </select>
-    <button class="qa-submit" type="button">Ask</button>
+  <div class="qa-input-area">
+    <textarea class="qa-question" rows="4" placeholder="Ask about heavy-ball, Nesterov acceleration, Adam, or stochastic gradients."></textarea>
+    <div class="qa-controls">
+      <select class="qa-model">
+        <option value="openai-fast" selected>openai-fast</option>
+        <option value="openai">openai</option>
+      </select>
+      <button class="qa-submit" type="button" aria-label="Ask"><svg viewBox="0 0 16 16" fill="none"><path d="M3 13L8 3L13 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
   </div>
   <div class="qa-answer" aria-live="polite"></div>
 </div>
