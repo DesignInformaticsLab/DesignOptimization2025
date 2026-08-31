@@ -2,6 +2,7 @@ format: jb-book
 root: index
 chapters:
   - file: optimization_intro_2026
+  - file: project1_optimization_formulation
   - file: optimization_prelim_2025
   - file: gradient_descent_2025
   - file: optimization_gradient_descent_advanced_2025
