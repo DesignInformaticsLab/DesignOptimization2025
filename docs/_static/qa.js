@@ -1,4 +1,11 @@
 (function () {
+  var GEMINI_KEY = "PASTE_YOUR_GEMINI_KEY_HERE";
+
+  var SYSTEM_PROMPT =
+    "You are a concise teaching assistant for a graduate design optimization class. " +
+    "Use the supplied lecture notes and notebook context. If the answer is not supported by context, say what is missing. " +
+    "When writing equations, use LaTeX delimiters \\(...\\) for inline math and \\[...\\] for display math so MathJax can render them.";
+
   async function loadContext(widget) {
     const path = widget.getAttribute("data-context-file");
     const pageText = document.querySelector("main")?.innerText || document.body.innerText;
@@ -50,56 +57,45 @@
     }
   }
 
-  async function askDirectModel(model, context, question) {
-    const contextStr = JSON.stringify(context, null, 2);
-    const trimmedContext = contextStr.length > 3000 ? contextStr.slice(0, 3000) + "..." : contextStr;
-    const payload = {
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a concise teaching assistant for a graduate design optimization class. " +
-            "Use the supplied lecture notes and notebook context. If the answer is not supported by context, say what is missing. " +
-            "When writing equations, use LaTeX delimiters \\(...\\) for inline math and \\[...\\] for display math so MathJax can render them.",
-        },
-        {
-          role: "user",
-          content:
-            "Context:\n" + trimmedContext +
-            "\n\nStudent question:\n" + question,
-        },
-      ],
-      model: model || "openai-fast",
-      temperature: 0.2,
-      max_tokens: 450,
-    };
+  async function askGemini(model, context, question) {
+    var contextStr = JSON.stringify(context, null, 2);
+    if (contextStr.length > 4000) contextStr = contextStr.slice(0, 4000) + "...";
 
-    const body = JSON.stringify(payload);
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const response = await fetch("https://text.pollinations.ai/openai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-      if (response.ok) {
-        const data = await response.json();
-        return (
-          data?.choices?.[0]?.message?.content ||
-          data?.choices?.[0]?.text ||
-          JSON.stringify(data, null, 2)
-        ).trim();
-      }
-      if (response.status === 402 && attempt === 0) {
-        await new Promise((r) => setTimeout(r, 16000));
-        continue;
-      }
-      throw new Error(`API request failed with HTTP ${response.status}`);
+    var url =
+      "https://generativelanguage.googleapis.com/v1beta/models/" +
+      encodeURIComponent(model) +
+      ":generateContent?key=" + GEMINI_KEY;
+
+    var response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{
+          role: "user",
+          parts: [{
+            text: "Context:\n" + contextStr + "\n\nStudent question:\n" + question,
+          }],
+        }],
+        generationConfig: { maxOutputTokens: 512, temperature: 0.2 },
+      }),
+    });
+
+    if (!response.ok) {
+      var err = await response.text();
+      throw new Error("Gemini API error (HTTP " + response.status + "): " + err.slice(0, 200));
     }
+
+    var data = await response.json();
+    return (
+      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      JSON.stringify(data, null, 2)
+    ).trim();
   }
 
   async function ask(widget) {
     const question = widget.querySelector(".qa-question").value.trim();
-    const model = widget.querySelector(".qa-model").value.trim() || "openai";
+    const model = widget.querySelector(".qa-model").value.trim() || "gemini-3.5-flash-lite";
     const endpoint = widget.getAttribute("data-engagement-endpoint")?.trim();
     const lectureId = widget.getAttribute("data-lecture-id") || document.location.pathname;
     const identity = readIdentity(widget);
@@ -143,12 +139,12 @@
           answer = data.answer.trim();
           source = `Answered in ${elapsedSeconds}s.`;
         } catch {
-          answer = await askDirectModel(model, context, question);
+          answer = await askGemini(model, context, question);
           const elapsedSeconds = ((performance.now() - startedAt) / 1000).toFixed(1);
           source = `Answered in ${elapsedSeconds}s (direct, engagement not logged).`;
         }
       } else {
-        answer = await askDirectModel(model, context, question);
+        answer = await askGemini(model, context, question);
         const elapsedSeconds = ((performance.now() - startedAt) / 1000).toFixed(1);
         source = `Answered in ${elapsedSeconds}s.`;
       }

@@ -180,8 +180,8 @@ This course covers two central questions:
     <textarea class="qa-question" rows="4" placeholder="Ask about optimization formulation, engineering design, optimal control, ML/AI, or game theory."></textarea>
     <div class="qa-controls">
       <select class="qa-model">
-        <option value="openai-fast" selected>openai-fast</option>
-        <option value="openai">openai</option>
+        <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite</option>
+        <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
       </select>
       <button class="qa-submit" type="button" aria-label="Ask"><svg viewBox="0 0 16 16" fill="none"><path d="M3 13L8 3L13 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
