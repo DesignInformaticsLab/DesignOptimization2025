@@ -1,17 +1,16 @@
 {
-  "source_deck": "Slides/optimization_gradient_descent_advanced_2025.pptx",
-  "public_page_goal": "Interactive Markdown lecture notes for advanced gradient-based methods: heavy-ball momentum, Nesterov acceleration, Adam, and stochastic gradients.",
+  "source_deck": "Slides/Lecture_notes_2025/optimization_gradient_descent_pt3_2025.pptx",
+  "public_page_goal": "Interactive Markdown lecture notes for MAE598/494 Design Optimization: momentum-based and adaptive first-order methods including heavy-ball, Nesterov acceleration, Adam, and SGD.",
   "slide_outline": [
     "Motivation: L-BFGS and trust-region methods use curvature but can be expensive for very large design variables.",
     "Momentum-based methods mimic some second-order behavior with first-order memory cost.",
-    "Heavy-ball momentum carries velocity across iterations to reduce oscillation in narrow valleys.",
+    "Heavy-ball momentum (Polyak 1964) carries velocity across iterations to reduce oscillation in narrow valleys.",
     "Heavy-ball has a damped mechanical system interpretation.",
-    "Heavy-ball convergence for strongly convex quadratics depends on curvature-aware tuning.",
-    "Nesterov accelerated gradient evaluates the gradient at a look-ahead point.",
+    "Nesterov accelerated gradient (1983) evaluates the gradient at a look-ahead point.",
     "Nesterov acceleration achieves the optimal O(k^-2) first-order rate for smooth convex objectives.",
-    "Adam combines momentum with adaptive coordinate-wise scaling for stochastic gradients.",
+    "Adam (2015) combines momentum with adaptive coordinate-wise scaling for stochastic gradients.",
     "Adam is useful for large-scale neural-network training but is not always ideal for deterministic high-accuracy convergence.",
-    "Open questions include cheap curvature, stochastic nonconvex optimization, and engineering applications such as MPC and PDE-constrained optimization.",
+    "Open questions include cheap curvature, stochastic nonconvex optimization, and engineering applications such as MPC, PDE-constrained optimization, and PINN/NO.",
     "SGD approximates gradients using mini-batches and is analyzed by expected stationarity in nonconvex settings."
   ],
   "answering_rules": [
