@@ -9,9 +9,9 @@ kernelspec:
   name: python3
 ---
 
-# Gradient descent for unconstrained optimization
+# Gradient-based methods for unconstrained optimization, part 1
 
-Source deck: `Slides/gradient_descent_2025.pptx`  
+Source deck: `Slides/Lecture_notes_2025/optimization_gradient_descent_pt1_2025.pptx`
 Related notebooks: `Demo/Gradient_Optimization_Walkthrough.ipynb`,
 `Demo/logreg_optimizers_2d.ipynb`, and
 `Demo/portfolio_simplex_optimizers.ipynb`.
@@ -29,6 +29,33 @@ x_k = x_{k-1} - \alpha \nabla f(x_{k-1}), \qquad k = 1,2,\ldots
 $$
 
 where $\alpha > 0$ is the step size or learning rate.
+
+```{image} _static/gd_figs/surface_landscape.gif
+:alt: Non-convex optimization landscape
+:width: 50%
+:align: center
+```
+
+The step size $\alpha$ is critical: too small and the algorithm is slow; too
+large and it can diverge.
+
+```{image} _static/gd_gifs/gd_good_step.gif
+:alt: GD trajectory with good step size showing zig-zagging
+:width: 80%
+:align: center
+```
+
+With a step size $\alpha = 1.9/L$ (just under the stability limit), GD
+converges but zig-zags in the narrow valley of an ill-conditioned quadratic.
+
+```{image} _static/gd_gifs/gd_diverge.gif
+:alt: GD trajectory with too-large step size diverging
+:width: 80%
+:align: center
+```
+
+When $\alpha = 2.1/L$ exceeds the stability bound $2/L$, the iterates
+diverge.
 
 ## 2. Termination and optimality
 
@@ -63,6 +90,15 @@ A fixed arbitrary step size is not guaranteed to converge. Line search chooses
 $\alpha_k > 0$ so that the step gives enough decrease without becoming
 unnecessarily small.
 
+**Exact line search.** For a descent direction $d_k$, the exact step solves
+
+$$
+\alpha_k = \arg\min_{\alpha > 0} f(x_k + \alpha d_k).
+$$
+
+On quadratics this has a closed form. On general objectives it is expensive.
+
+**Armijo line search.** A cheaper alternative requires only sufficient decrease.
 For a descent direction $d_k$, the Armijo sufficient decrease condition is
 
 $$
@@ -167,7 +203,25 @@ ax.legend()
 plt.show()
 ```
 
-## 5. Convergence assumptions
+On the Rosenbrock function, Armijo backtracking navigates the narrow curved
+valley:
+
+```{image} _static/gd_gifs/armijo_rosenbrock.gif
+:alt: GD with Armijo line search on the Rosenbrock function
+:width: 80%
+:align: center
+```
+
+## 5. Summary so far
+
+| Component | Purpose |
+|---|---|
+| Gradient descent | Follow $-\nabla f$ to decrease the objective |
+| Termination | Stop when $\|\nabla f\| \le \epsilon$ |
+| Exact line search | Minimize along the ray (closed form on quadratics) |
+| Armijo backtracking | Cheap sufficient decrease guarantee |
+
+## 6. Convergence assumptions
 
 The deck states four common assumptions.
 
@@ -196,9 +250,9 @@ $$
 \|\nabla^2 f(x)-\nabla^2 f(y)\| \le M\|x-y\|,\qquad M>0.
 $$
 
-## 6. Convergence properties
+## 7. Convergence properties
 
-Nonconvex smooth case:
+**Nonconvex smooth case:**
 
 Under A1 and $\alpha_k \in (0,2/L)$, GD decreases $f$ monotonically and
 
@@ -206,7 +260,7 @@ $$
 \min_{i \le k}\|\nabla f(x_i)\| = O(k^{-1/2}).
 $$
 
-Convex smooth case:
+**Convex smooth case:**
 
 Under A1 and A2 with $\alpha_k = 1/L$,
 
@@ -214,7 +268,7 @@ $$
 f(x_k)-f^\star \le \frac{L\|x_0-x^\star\|^2}{2k}.
 $$
 
-Strongly convex smooth case:
+**Strongly convex smooth case:**
 
 Under A1 and A3, using the optimal fixed step size
 $\alpha_k = 2/(\mu+L)$ and condition number $\kappa=L/\mu$,
@@ -228,7 +282,7 @@ $$
 
 Ill-conditioned Hessians, where $\kappa \to \infty$, make GD slow.
 
-## 7. Live code: condition number and zig-zagging
+## 8. Live code: condition number and zig-zagging
 
 ```{code-cell} ipython3
 def run_condition_demo(condition_numbers=(5, 50, 500), steps=80):
@@ -259,109 +313,87 @@ def run_condition_demo(condition_numbers=(5, 50, 500), steps=80):
 run_condition_demo()
 ```
 
-## 8. Conjugate gradient
+## 9. Frequency principle and neural networks
 
-Conjugate gradient addresses the slow convergence of GD on quadratic problems:
+The convergence rate $\left(1-\kappa^{-1}\right)^k$ implies that components of
+the gradient along eigenvectors with large eigenvalues are resolved first,
+while low-curvature directions converge slowly. This phenomenon has an
+important analogy in deep learning.
 
-$$
-\min_x f(x) = \frac{1}{2}x^T A x - b^T x,
-$$
+Rahaman et al. (2019) showed that neural networks trained with GD learn
+low-frequency components of the target function before high-frequency
+components — the **frequency principle**. This is because the loss landscape
+has larger curvatures (eigenvalues) for low-frequency basis functions.
 
-where $A$ is symmetric positive definite. This optimization problem is
-equivalent to solving the linear system
+```{image} _static/gd_figs/frequency_principle_iterations.png
+:alt: NN training progressively fits low to high frequency (Rahaman et al. 2019)
+:width: 100%
+:align: center
+```
 
-$$
-Ax=b.
-$$
+```{image} _static/gd_figs/frequency_principle_fft.gif
+:alt: FFT of DNN output vs target — low frequencies fit first
+:width: 50%
+:align: center
+```
 
-GD convergence depends strongly on the condition number $\kappa(A)$.
-Conjugate gradient builds $A$-conjugate directions and can solve the exact
-quadratic problem in at most $d_x$ iterations in exact arithmetic.
+Xu et al. (2020) demonstrated the same effect on image reconstruction: the
+network first resolves the coarse structure (low frequencies) and only
+gradually sharpens fine detail.
 
-## 9. Newton's method
+```{image} _static/gd_figs/frequency_principle_cameraman.png
+:alt: NN image reconstruction showing low-frequency bias (Xu et al. 2020)
+:width: 100%
+:align: center
+```
 
-GD is affected by the local Hessian geometry. Newton's method normalizes the
-search direction by the Hessian:
+> Xu, Z.-Q.J., Zhang, Y., Luo, T., Xiao, Y., Ma, Z.: Frequency principle:
+> Fourier analysis sheds light on deep neural networks. *Communications in
+> Computational Physics* 28(5), 1746–1767 (2020).
 
-$$
-x_k = x_{k-1}
-- \alpha [\nabla^2 f(x_{k-1})]^{-1}\nabla f(x_{k-1}).
-$$
+**Remark.** Neural networks have large curvatures for low-frequency basis and
+resolve these residuals first, leading to a low-frequency bias. Diffusion
+methods alleviate this bias by forcing high-frequency learning (analogous to
+preconditioning). Classical PDE solvers exhibit the opposite behavior: the
+physics generates large curvatures for high-frequency residuals.
 
-Under A1, A3, and A4, Newton's method has quadratic local convergence:
+## 10. Convergence proofs
 
-$$
-f(x_{k+1})-f^\star
-\le
-\frac{2LM^2}{\mu^3}
-\left(f(x_k)-f^\star\right)^2.
-$$
-
-## 10. Trust region
-
-At $x_k$, trust-region methods solve a local quadratic model inside a radius
-$\Delta_k$:
-
-$$
-\begin{aligned}
-\min_s\quad & \nabla f(x_k)^T s
-+ \frac{1}{2}s^T\nabla^2 f(x_k)s \\
-\text{s.t.}\quad & \|s\| \le \Delta_k .
-\end{aligned}
-$$
-
-The solution can be written as
+**Proposition 1** (nonconvex smooth). Under A1, if $\alpha \in (0, 2/L)$, then
+GD produces iterates satisfying
 
 $$
-s_k =
--[\nabla^2 f(x_k)+\mu I]^{-1}\nabla f(x_k),
+\min_{0 \le i \le k} \|\nabla f(x_i)\|^2
+\le \frac{f(x_0)-f^\star}{(k+1)\alpha(1-\alpha L/2)}.
 $$
 
-where $\mu \ge 0$ enforces $\|s_k\|\le \Delta_k$. Large trust regions recover a
-Newton-like step. Small trust regions recover a gradient-descent-like step.
-
-## 11. BFGS and L-BFGS
-
-BFGS avoids computing the true Hessian by updating a positive definite inverse
-Hessian approximation from gradient history. Define
+**Proposition 2** (convex smooth). Under A1 and A2, with $\alpha = 1/L$,
 
 $$
-s_k = x_{k+1}-x_k,\qquad
-y_k = \nabla f(x_{k+1})-\nabla f(x_k),\qquad
-\rho_k = \frac{1}{y_k^T s_k}.
+f(x_k)-f^\star \le \frac{L\|x_0-x^\star\|^2}{2k}.
 $$
 
-The inverse-Hessian BFGS update is
+**Proposition 3** (strongly convex smooth). Under A1 and A3, with
+$\alpha = 2/(\mu+L)$,
 
 $$
-B_{k+1}
-= (I-\rho_k s_k y_k^T)B_k(I-\rho_k y_k s_k^T)
-+ \rho_k s_k s_k^T.
+f(x_k)-f^\star
+\le \frac{L}{2}
+\left(\frac{\kappa-1}{\kappa+1}\right)^{2k}
+\|x_0-x^\star\|^2.
 $$
-
-L-BFGS stores only the most recent $m$ pairs $(s_k,y_k)$, typically
-$m\in[3,20]$, so it is practical when $d_x$ is very large.
-
-## 12. Summary
-
-| Method | Convergence rate | Global convergence? | Cost per iteration |
-|---|---:|---:|---:|
-| GD | Linear under A1+A3 | Yes with line search under A1 | $O(d_x)$ |
-| Newton | Quadratic under A3+A4 | Only under stronger assumptions | $O(d_x^3)$ |
-| Trust region | Superlinear or quadratic | Yes for broad smooth cases | $O(kd_x)$ with CG |
-| L-BFGS | Superlinear under A3 | Yes with line search under A1 | $O(md_x)$ |
 
 ## Q&A
 
 ```{raw} html
-<div class="qa-widget" data-context-file="_static/gradient_descent_context.json" data-lecture-id="gradient_descent_2025" data-engagement-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa">
+<div class="qa-widget" data-context-file="_static/gradient_descent_pt1_context.json" data-lecture-id="gradient_descent_pt1_2025" data-engagement-endpoint="https://gpmprmejteppxxpxtlfk.supabase.co/functions/v1/qa">
   <div class="qa-identity">
     <input class="qa-first-name" autocomplete="given-name" placeholder="First name" />
     <input class="qa-last-name" autocomplete="family-name" placeholder="Last name" />
     <input class="qa-university-id" autocomplete="username" placeholder="University ID" />
   </div>
   <div class="qa-input-area">
-    <textarea class="qa-question" rows="4" placeholder="Ask about Armijo, convergence rates, Newton, BFGS, or the demo notebooks."></textarea>
+    <textarea class="qa-question" rows="4" placeholder="Ask about gradient descent, Armijo, convergence rates, or the demo notebooks."></textarea>
     <div class="qa-controls">
       <select class="qa-model">
         <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite</option>

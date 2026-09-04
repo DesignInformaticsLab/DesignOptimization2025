@@ -1,17 +1,15 @@
 {
-  "source_deck": "Slides/gradient_descent_2025.pptx",
-  "public_page_goal": "Minimal interactive Markdown lecture notes for MAE598/494 Design Optimization gradient descent material.",
+  "source_deck": "Slides/Lecture_notes_2025/optimization_gradient_descent_pt1_2025.pptx",
+  "public_page_goal": "Interactive Markdown lecture notes for MAE598/494 Design Optimization: gradient descent fundamentals, line search, and convergence analysis.",
   "slide_outline": [
     "Gradient descent update and steepest descent interpretation.",
     "Termination criterion and first/second-order optimality conditions.",
-    "Line search and Armijo backtracking.",
+    "Line search: exact and Armijo backtracking.",
     "Convergence assumptions: L-smoothness, convexity, strong convexity, Hessian Lipschitz continuity.",
     "Convergence rates for nonconvex smooth, convex smooth, and strongly convex smooth objectives.",
-    "Ill-conditioning slows gradient descent.",
-    "Conjugate gradient for symmetric positive definite quadratic objectives.",
-    "Newton's method and quadratic local convergence.",
-    "Trust-region methods interpolate between Newton-like and gradient-like steps.",
-    "BFGS and L-BFGS approximate Hessian information using gradient history."
+    "Ill-conditioning slows gradient descent: the role of the condition number.",
+    "Frequency principle: neural networks trained with GD resolve low-frequency components first.",
+    "Convergence proofs for Propositions 1 through 3."
   ],
   "related_notebooks": [
     {
@@ -20,11 +18,7 @@
       "relevant_modules": [
         "Module 1: Vanilla gradient descent with fixed step size.",
         "Module 2: Steepest descent and preconditioning.",
-        "Module 3: Exact and Armijo line search.",
-        "Module 4: Conjugate gradient compared with GD on ill-conditioned quadratics.",
-        "Module 5: Newton's method.",
-        "Module 6: Trust-region methods.",
-        "Module 8: BFGS, L-BFGS, and SR1."
+        "Module 3: Exact and Armijo line search."
       ]
     },
     {
