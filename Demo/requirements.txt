@@ -2,6 +2,9 @@ numpy>=1.24
 scipy>=1.10
 matplotlib>=3.7
 osqp>=0.6
+cvxpy>=1.5      # convex cone solver (pizza_slice_min_distance): bundles Clarabel
+clarabel>=0.7   # SOTA conic interior-point solver used by CVXPY
+casadi>=3.6     # ships Ipopt for the nonconvex formulations
 jupyter
 ipykernel
 matplotlib[animation]
