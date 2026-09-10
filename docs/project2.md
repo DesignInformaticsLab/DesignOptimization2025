@@ -88,9 +88,9 @@ You may **reuse your Project 1 problem** if you can make its landscape ill-condi
 
 | Date | Event |
 |------|-------|
-| _TBD_ | Presenting team announced |
-| _TBD_ | Zoom rehearsal |
-| _TBD_ | In-class presentation |
+| Sep 16 | Presenting team announced |
+| Sep 18 | Zoom rehearsal |
+| Sep 28 | In-class presentation |
 
 ---
 
