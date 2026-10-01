@@ -27,17 +27,17 @@ words, AI is *compression*.
 subspace where data lives; t-SNE finds low-dimensional embeddings of
 high-dimensional data like handwritten digits (0–9).
 
-```{figure} _static/pinn_figs/pca_tsne.gif
+```{figure} _static/pinn_figs/tsne_digits.gif
 :name: fig-pca-tsne
-:width: 50%
+:width: 80%
 :align: center
 
 PCA finds low-dimensional subspaces in data.
 ```
 
-```{figure} _static/pinn_figs/tsne_digits.gif
+```{figure} _static/pinn_figs/pca_tsne.gif
 :name: fig-tsne-digits
-:width: 80%
+:width: 50%
 :align: center
 
 t-SNE embedding of handwritten digit distributions.
@@ -55,6 +55,7 @@ $(x+y) \bmod 5$. This phenomenon is called
 :align: center
 
 Grokking: a neural net discovers the modular addition algorithm during training.
+Animation from Welch Labs.
 ```
 
 **AlphaFold learns folding and binding physics.** Predicting a protein's 3D
@@ -228,14 +229,6 @@ The CoD is the bottleneck for many important application domains:
   (dimension = number of assets)
 - **Quantum mechanics** — many-body Schrödinger equation (dimension = number
   of particles)
-
-```{figure} _static/pinn_figs/cod_applications.jpg
-:name: fig-cod-apps
-:width: 60%
-:align: center
-
-Applications limited by the curse of dimensionality.
-```
 
 **How PINNs help with CoD:**
 
