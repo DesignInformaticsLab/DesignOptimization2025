@@ -1,0 +1,25 @@
+{
+  "source_deck": "Slides/optimization_kkt_pt1_2026.pptx",
+  "public_page_goal": "Interactive Markdown lecture notes for MAE598/494 Design Optimization: constrained optimization part 1, covering KKT conditions, constraint qualifications, derivation via reduced gradients, and sensitivity of Lagrange multipliers.",
+  "notation": "Problem (P): min f(x) s.t. g(x) <= 0 (g: R^n -> R^p), h(x) = 0 (h: R^n -> R^m). Gradients are row vectors; mu (inequality) and lambda (equality) are Lagrange multipliers; L = f + mu^T g + lambda^T h.",
+  "slide_outline": [
+    "KKT point: stationarity, primal feasibility, dual feasibility (mu >= 0), complementary slackness (mu_i g_i = 0).",
+    "Geometric interpretation: force balance between -grad f and constraint reaction forces; walls push but never pull.",
+    "Active sets: strongly active (g_i = 0, mu_i > 0), weakly active (g_i = 0, mu_i = 0), inactive (g_i < 0).",
+    "First-order necessary conditions under a constraint qualification; second-order sufficient conditions on critical directions.",
+    "LICQ on all active constraints; Slater's condition for convex problems; KKT is sufficient for convex problems.",
+    "Counterexample: min -x1 s.t. x2 <= (1-x1)^3, x2 >= 0 has a solution that is not a KKT point because LICQ fails.",
+    "Equality-only derivation: split x = [d; s], implicit function theorem, reduced gradient df/dd.",
+    "Lagrange multiplier as adjoint: lambda^T = -(df/ds)(dh/ds)^{-1}; second-order condition via w^T Hess_x L w on the tangent space.",
+    "Inequality constraints: treat active constraints as equalities; proof of mu >= 0 using LICQ.",
+    "Sensitivity: change in optimal f is approximately -lambda^T dh - mu^T dg; multipliers are shadow prices; envelope theorem dF/dtheta = dL/dtheta.",
+    "Exercises: box-constrained quadratic, PCA, linear equality constraints, discrete-time Pontryagin principle, linear and nonlinear PDE-constrained design (adjoint), neural network training (backpropagation), water-filling, manufacturing shadow prices, nearest point on a parabola."
+  ],
+  "answering_rules": [
+    "Answer as a concise teaching assistant for an optimization class.",
+    "Use the supplied lecture notes first. If context is insufficient, say what is missing.",
+    "Prefer equations and small examples over vague descriptions.",
+    "The numbered exercises are assigned work: give hints, point to the relevant section, and check the student's reasoning rather than giving full solutions.",
+    "Use LaTeX delimiters for math so MathJax can render the answer."
+  ]
+}
