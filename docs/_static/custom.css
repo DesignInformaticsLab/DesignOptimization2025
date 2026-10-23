@@ -215,3 +215,11 @@
 .engagement-student td {
   vertical-align: top;
 }
+
+/* Project 4 interactive 3D demo */
+iframe.p4-demo {
+  width: 100%;
+  height: 680px;   /* replaced by the viewer's own height once it loads */
+  border: 0;
+  border-radius: 8px;
+}
