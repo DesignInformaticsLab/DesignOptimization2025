@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Footbridge Comparison</title>
+<style>
+:root {
+  --surface: #fcfcfb; --panel: #ffffff; --border: #d9d8d3;
+  --text: #0b0b0b; --text2: #52514e; --muted: #7a7974;
+  --good: #0ca30c; --critical: #d03b3b;
+  --deck: #9a9893;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1a1a19; --panel: #232322; --border: #3a3a37;
+    --text: #ffffff; --text2: #c3c2b7; --muted: #8f8e86; --deck: #6b6a65;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1a1a19; --panel: #232322; --border: #3a3a37;
+  --text: #ffffff; --text2: #c3c2b7; --muted: #8f8e86; --deck: #6b6a65;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--surface); color: var(--text);
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+#controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 12px; }
+#controls label { color: var(--text2); display: flex; gap: 6px; align-items: center; }
+select, button, input[type=range] { font: inherit; }
+select, button { background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px 8px; }
+button { cursor: pointer; }
+#wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px; }
+.col { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; min-width: 0; }
+.pane { position: relative; height: 380px; }
+.pane canvas { display: block; }
+.card { padding: 8px 10px 0; }
+.card h3 { margin: 0 0 4px; font-size: 14px; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); column-gap: 14px;
+  font-size: 12px; font-variant-numeric: tabular-nums; }
+.metrics .m { display: flex; gap: 6px; color: var(--text2); white-space: nowrap; }
+.metrics .m .v { color: var(--text); margin-left: auto; }
+.metrics .m .mk { width: 1.1em; text-align: center; }
+.ok { color: var(--good); } .bad { color: var(--critical); }
+#legend { display: flex; align-items: center; gap: 10px; padding: 8px 12px 2px; color: var(--text2); flex-wrap: wrap; }
+#bar { width: 220px; height: 10px; border-radius: 3px; }
+#ticks { display: flex; justify-content: space-between; width: 220px; font-size: 11px; color: var(--muted); }
+.sw { display: inline-block; width: 12px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+#note { padding: 2px 12px 10px; color: var(--muted); font-size: 12px; }
+#tip { position: fixed; pointer-events: none; background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 12px;
+  box-shadow: 0 2px 8px #0003; display: none; z-index: 5; font-variant-numeric: tabular-nums; }
+#status { padding: 40px; text-align: center; color: var(--muted); }
+@media (max-width: 600px) {
+  #wrap { grid-template-columns: 1fr; padding: 0 8px; }
+  .pane { height: 300px; }
+  #controls { padding: 8px; }
+}
+</style>
+</head>
+<body>
+<div id="controls">
+  <label>Color by
+    <select id="field">
+      <option value="util">Fatigue utilization σ / σ_allow</option>
+      <option value="axial">Axial force (tension / compression)</option>
+      <option value="radius">Tube outer radius</option>
+    </select>
+  </label>
+  <label>Shape
+    <select id="shape">
+      <option value="static">Static deflection (design load)</option>
+      <option value="mode">Vibration mode 1 (animated)</option>
+      <option value="buck">Buckling mode 1 (animated)</option>
+      <option value="none">Undeformed</option>
+    </select>
+  </label>
+  <label>Exaggeration <input id="scale" type="range" min="0" max="100" value="40"> <span id="scaleval"></span></label>
+  <button id="play" aria-pressed="true">Pause</button>
+</div>
+<div id="wrap">
+  <div class="col"><div class="card" id="cardA"></div><div class="pane" id="paneA"></div></div>
+  <div class="col"><div class="card" id="cardB"></div><div class="pane" id="paneB"></div></div>
+</div>
+<div id="legend"></div>
+<div id="note">Tube radii drawn ×2 for visibility. Deformations are exaggerated. Drag to orbit, scroll to zoom
+  (the two views move together). Hover a member for its values.</div>
+<div id="tip"></div>
+<div id="status">Loading…</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+// ---------- theme (follows the parent Jupyter Book page when embedded) ----------
+function syncTheme() {
+  let t = null;
+  try { t = window.parent.document.documentElement.dataset.theme || null; } catch (e) { /* cross-origin */ }
+  if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  else delete document.documentElement.dataset.theme;
+}
+syncTheme();
+try {
+  new MutationObserver(() => { syncTheme(); recolorAll(); })
+    .observe(window.parent.document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+} catch (e) {}
+const dark = () => getComputedStyle(document.documentElement).getPropertyValue("--surface").trim() === "#1a1a19";
+
+// ---------- color scales (sequential blue; diverging blue<->red with gray midpoint) ----------
+const SEQ_LIGHT = ["#86b6ef", "#5598e7", "#2a78d6", "#1c5cab", "#104281", "#0d366b"];
+const SEQ_DARK  = ["#184f95", "#1c5cab", "#2a78d6", "#5598e7", "#9ec5f4", "#cde2fb"];
+const CRITICAL = "#d03b3b";
+const DIV = { neg: "#e34948", mid: () => (dark() ? "#383835" : "#f0efec"), pos: "#2a78d6" };
+const hex = h => new THREE.Color(h);
+function ramp(stops, t) {
+  t = Math.min(1, Math.max(0, t)) * (stops.length - 1);
+  const i = Math.min(stops.length - 2, Math.floor(t));
+  return hex(stops[i]).lerp(hex(stops[i + 1]), t - i);
+}
+function colorFor(field, v, ctx) {
+  if (field === "util") return v > 1 ? hex(CRITICAL) : ramp(dark() ? SEQ_DARK : SEQ_LIGHT, v);
+  if (field === "radius") return ramp(dark() ? SEQ_DARK : SEQ_LIGHT, (v - ctx.rmin) / (ctx.rmax - ctx.rmin));
+  const a = Math.min(1, Math.abs(v) / ctx.amax);                       // axial: tension +
+  return hex(DIV.mid()).lerp(hex(v >= 0 ? DIV.pos : DIV.neg), Math.pow(a, 0.7));
+}
+
+// ---------- data ----------
+const status = document.getElementById("status");
+let D;
+try { D = await (await fetch("bridge_demo.json")).json(); }
+catch (e) { status.textContent = "Could not load bridge_demo.json (open this page through a web server)."; throw e; }
+status.remove();
+
+const NS = D.initial.base[0].length;                 // stations per member
+const RAD = 12;                                      // tube facets
+const ctx = (() => {
+  const all = [...D.initial.r, ...D.optimized.r];
+  const ax = [...D.initial.axial_kN, ...D.optimized.axial_kN].map(Math.abs);
+  return { rmin: Math.min(...all), rmax: Math.max(...all), amax: Math.max(...ax) };
+})();
+
+// ---------- build one design ----------
+function buildDesign(S) {
+  const nm = S.base.length, nv = nm * NS * RAD;
+  const pos = new Float32Array(nv * 3), base = new Float32Array(nv * 3), col = new Float32Array(nv * 3);
+  const disp = { static: new Float32Array(nv * 3), mode: new Float32Array(nv * 3), buck: new Float32Array(nv * 3) };
+  const vMember = new Int32Array(nv), vStation = new Int32Array(nv);
+  const idx = [];
+  const up = new THREE.Vector3(0, 0, 1), side = new THREE.Vector3(0, 1, 0);
+  for (let m = 0; m < nm; m++) {
+    const P = S.base[m].map(p => new THREE.Vector3(...p));
+    const t = P[NS - 1].clone().sub(P[0]).normalize();
+    const n1 = (Math.abs(t.z) > 0.99 ? side : up).clone().cross(t).normalize();
+    const n2 = t.clone().cross(n1);
+    const rv = 2 * S.r[m];
+    for (let s = 0; s < NS; s++) for (let k = 0; k < RAD; k++) {
+      const v = (m * NS + s) * RAD + k, th = 2 * Math.PI * k / RAD;
+      const o = n1.clone().multiplyScalar(Math.cos(th) * rv).add(n2.clone().multiplyScalar(Math.sin(th) * rv));
+      base.set([P[s].x + o.x, P[s].y + o.y, P[s].z + o.z], 3 * v);
+      for (const f of ["static", "mode", "buck"]) disp[f].set(S[f][m][s], 3 * v);
+      vMember[v] = m; vStation[v] = s;
+    }
+    for (let s = 0; s < NS - 1; s++) for (let k = 0; k < RAD; k++) {
+      const a = (m * NS + s) * RAD + k, b = (m * NS + s) * RAD + (k + 1) % RAD, c = a + RAD, d = b + RAD;
+      idx.push(a, c, b, b, c, d);
+    }
+  }
+  pos.set(base);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }));
+
+  // deck: grid of deck nodes recovered from deck-level member end points
+  const key = p => `${Math.round(p[0] * 100)},${Math.round(p[1] * 100)}`;
+  const deckDisp = { static: {}, mode: {}, buck: {} };
+  for (let m = 0; m < nm; m++) for (const s of [0, NS - 1]) {
+    const p = S.base[m][s];
+    if (Math.abs(p[2]) < 1e-6) for (const f in deckDisp) deckDisp[f][key(p)] = S[f][m][s];
+  }
+  const { nx, ny } = D.deck;
+  const dgeo = new THREE.PlaneGeometry(15, 3, nx - 1, ny - 1);
+  dgeo.translate(7.5, 1.5, 0);
+  const dbase = Float32Array.from(dgeo.attributes.position.array);
+  const deck = new THREE.Mesh(dgeo, new THREE.MeshLambertMaterial({ transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }));
+  return { S, mesh, geo, pos, base, disp, vMember, vStation, deck, dgeo, dbase, deckDisp, key };
+}
+
+function recolor(d, field) {
+  const c = d.geo.attributes.color.array;
+  for (let v = 0; v < d.vMember.length; v++) {
+    const m = d.vMember[v];
+    const val = field === "util" ? d.S.util[m][d.vStation[v]] : field === "axial" ? d.S.axial_kN[m] : d.S.r[m];
+    const col = colorFor(field, val, ctx);
+    c[3 * v] = col.r; c[3 * v + 1] = col.g; c[3 * v + 2] = col.b;
+  }
+  d.geo.attributes.color.needsUpdate = true;
+  d.deck.material.color = hex(getComputedStyle(document.documentElement).getPropertyValue("--deck").trim());
+}
+
+function deform(d, shape, amp) {
+  const p = d.pos;
+  if (shape === "none") p.set(d.base);
+  else { const u = d.disp[shape]; for (let i = 0; i < p.length; i++) p[i] = d.base[i] + amp * u[i]; }
+  d.geo.attributes.position.needsUpdate = true;
+  d.geo.computeVertexNormals();
+  const dp = d.dgeo.attributes.position.array;
+  for (let i = 0; i < dp.length; i += 3) {
+    const u = shape === "none" ? null : d.deckDisp[shape][d.key([d.dbase[i], d.dbase[i + 1]])];
+    for (let c = 0; c < 3; c++) dp[i + c] = d.dbase[i + c] + (u ? amp * u[c] : 0);
+  }
+  d.dgeo.attributes.position.needsUpdate = true;
+}
+
+// ---------- scenes ----------
+const designs = [buildDesign(D.initial), buildDesign(D.optimized)];
+const panes = [document.getElementById("paneA"), document.getElementById("paneB")];
+const views = panes.map((el, i) => {
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x666666, 2.2));
+  const dl = new THREE.DirectionalLight(0xffffff, 1.2); dl.position.set(4, -8, 12); scene.add(dl);
+  scene.add(designs[i].mesh, designs[i].deck);
+  const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 300);
+  cam.up.set(0, 0, 1); cam.position.set(-1.0, -14.5, 7.5);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+  el.appendChild(renderer.domElement);
+  const ctl = new OrbitControls(cam, renderer.domElement);
+  ctl.target.set(7.5, 1.5, 0.6); ctl.enableDamping = true; ctl.update();
+  return { scene, cam, renderer, ctl, el };
+});
+// fit the 15 m span into the pane, whatever its aspect ratio
+const VIEW_DIR = new THREE.Vector3(-8.5, -16.0, 6.9).normalize();
+function frameBridge(v) {
+  const vfov = THREE.MathUtils.degToRad(v.cam.fov);
+  const hfov = 2 * Math.atan(Math.tan(vfov / 2) * v.cam.aspect);
+  const dist = Math.max(9.0 / Math.tan(hfov / 2), 5.0 / Math.tan(vfov / 2));
+  v.cam.position.copy(v.ctl.target).addScaledVector(VIEW_DIR, dist);
+  v.ctl.update();
+}
+views.forEach(v => v.renderer.domElement.addEventListener("pointerdown", () => { views.forEach(o => o.userMoved = true); }));
+views.forEach(v => v.renderer.domElement.addEventListener("wheel", () => { views.forEach(o => o.userMoved = true); }, { passive: true }));
+let syncing = false;
+views.forEach((v, i) => v.ctl.addEventListener("change", () => {
+  if (syncing) return; syncing = true;
+  const o = views[1 - i];
+  o.cam.position.copy(v.cam.position); o.ctl.target.copy(v.ctl.target); o.ctl.update();
+  syncing = false;
+}));
+
+// ---------- metric cards ----------
+const L = D.limits;
+function card(el, S) {
+  const R = S.report;
+  const item = (name, val, ok) => `<div class="m"><span>${name}</span><span class="v">${val}</span>` +
+    (ok === undefined ? `<span class="mk"></span>` : `<span class="mk ${ok ? "ok" : "bad"}" title="${ok ? "pass" : "fail"}">${ok ? "✓" : "✗"}</span>`) + `</div>`;
+  el.innerHTML = `<h3>${S.label}</h3><div class="metrics">
+    ${item("Total mass", R.mass.toFixed(0) + " kg")}
+    ${item("Truss depth", R.H.toFixed(2) + " m")}
+    ${item("Max σ_vM", R.smax_MPa.toFixed(1) + " MPa", R.smax_MPa <= 160)}
+    ${item("Fatigue FS", R.fatigue_FS.toFixed(2), R.fatigue_FS >= 1.999)}
+    ${item("Max deflection", R.defl_mm.toFixed(1) + " mm", R.defl_mm <= L.defl_mm)}
+    ${item("Lowest freq.", R.f1_Hz.toFixed(2) + " Hz", R.f1_Hz >= L.f1 - 1e-3)}
+    ${item("Buckling λ_cr", R.lam_cr.toFixed(2), R.lam_cr >= L.lam - 1e-3)}
+  </div>`;
+}
+card(document.getElementById("cardA"), D.initial);
+card(document.getElementById("cardB"), D.optimized);
+
+// ---------- legend ----------
+function legend(field) {
+  const el = document.getElementById("legend");
+  let stops, lo, hi, extra = "", title;
+  if (field === "util") {
+    stops = dark() ? SEQ_DARK : SEQ_LIGHT; lo = "0"; hi = "1.0";
+    title = `Fatigue utilization σ_vM / ${L.sig_fat_MPa.toFixed(1)} MPa`;
+    extra = `<span><span class="sw" style="background:${CRITICAL}"></span>over limit (&gt; 1.0)</span>`;
+  } else if (field === "radius") {
+    stops = dark() ? SEQ_DARK : SEQ_LIGHT; lo = `${(ctx.rmin * 1e3).toFixed(0)} mm`; hi = `${(ctx.rmax * 1e3).toFixed(0)} mm`;
+    title = "Tube outer radius";
+  } else {
+    stops = [DIV.neg, DIV.mid(), DIV.pos]; lo = `−${ctx.amax.toFixed(0)} kN`; hi = `+${ctx.amax.toFixed(0)} kN`;
+    title = "Axial force: compression (red) ← 0 → tension (blue)";
+  }
+  el.innerHTML = `<span>${title}</span><span><div id="bar" style="background:linear-gradient(90deg,${stops.join(",")})"></div>
+    <div id="ticks"><span>${lo}</span><span>${hi}</span></div></span>${extra}`;
+}
+
+// ---------- controls ----------
+const $ = id => document.getElementById(id);
+let field = "util", shape = "static", playing = true;
+function recolorAll() { designs.forEach(d => recolor(d, field)); legend(field); }
+$("field").onchange = e => { field = e.target.value; recolorAll(); };
+$("shape").onchange = e => { shape = e.target.value; };
+$("play").onclick = e => { playing = !playing; e.target.textContent = playing ? "Pause" : "Play"; e.target.setAttribute("aria-pressed", playing); };
+function ampBase() {
+  const s = +$("scale").value / 100;
+  if (shape === "static") return s * 60;          // ×0 … ×60 on the true static deflection
+  return s * 1.2;                                  // modes are normalized to max |u| = 1 m
+}
+const updateScaleLabel = () => { $("scaleval").textContent = shape === "static" ? `×${ampBase().toFixed(0)}` : `${(ampBase() * 1000).toFixed(0)} mm peak`; };
+$("scale").oninput = updateScaleLabel;
+$("shape").addEventListener("change", updateScaleLabel);
+recolorAll(); updateScaleLabel();
+
+// ---------- hover tooltip ----------
+const tip = $("tip"), ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+views.forEach((v, i) => v.renderer.domElement.addEventListener("pointermove", ev => {
+  const r = v.renderer.domElement.getBoundingClientRect();
+  mouse.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(mouse, v.cam);
+  const hit = ray.intersectObject(designs[i].mesh)[0];
+  if (!hit) { tip.style.display = "none"; return; }
+  const d = designs[i], m = d.vMember[hit.face.a], S = d.S;
+  const umax = Math.max(...S.util[m]);
+  tip.innerHTML = `<b>${D.groups[m].replace("_", " ")}</b> #${m}<br>radius ${(S.r[m] * 1e3).toFixed(1)} mm<br>
+    axial ${S.axial_kN[m] >= 0 ? "+" : ""}${S.axial_kN[m].toFixed(1)} kN (${S.axial_kN[m] >= 0 ? "tension" : "compression"})<br>
+    fatigue utilization ${umax.toFixed(2)}${umax > 1 ? ' <span class="bad">over limit</span>' : ""}`;
+  tip.style.display = "block";
+  tip.style.left = Math.min(ev.clientX + 14, innerWidth - 230) + "px";
+  tip.style.top = (ev.clientY + 14) + "px";
+}));
+views.forEach(v => v.renderer.domElement.addEventListener("pointerleave", () => tip.style.display = "none"));
+
+// ---------- loop ----------
+let t0 = performance.now(), phase = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (playing) phase += (now - t0) / 1000 * 2 * Math.PI * 0.6;
+  t0 = now;
+  const animated = shape === "mode" || shape === "buck";
+  const amp = ampBase() * (animated ? Math.sin(phase) : 1);
+  designs.forEach(d => deform(d, shape, amp));
+  views.forEach(v => {
+    const w = v.el.clientWidth, h = v.el.clientHeight, c = v.renderer.domElement;
+    if (w && h && (c.width !== Math.floor(w * v.renderer.getPixelRatio()) || c.height !== Math.floor(h * v.renderer.getPixelRatio()))) {
+      v.renderer.setSize(w, h); v.cam.aspect = w / h; v.cam.updateProjectionMatrix();
+      if (!v.userMoved) frameBridge(v);
+    }
+    v.ctl.update();
+    v.renderer.render(v.scene, v.cam);
+  });
+}
+requestAnimationFrame(frame);
+
+// tell an embedding page how tall we are (the course page resizes its iframe)
+let lastH = 0;
+new ResizeObserver(() => {
+  const h = Math.ceil(document.body.getBoundingClientRect().height) + 4;
+  if (h !== lastH && window.parent !== window) { lastH = h; window.parent.postMessage({ p4demoHeight: h }, "*"); }
+}).observe(document.body);
+</script>
+</body>
+</html>
