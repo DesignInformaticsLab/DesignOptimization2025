@@ -77,13 +77,17 @@ button { cursor: pointer; }
   </label>
   <label>Exaggeration <input id="scale" type="range" min="0" max="100" value="40"> <span id="scaleval"></span></label>
   <button id="play" aria-pressed="true">Pause</button>
+  <label><input id="bc" type="checkbox" checked> Supports &amp; loads</label>
 </div>
 <div id="wrap">
   <div class="col"><div class="card" id="cardA"></div><div class="pane" id="paneA"></div></div>
   <div class="col"><div class="card" id="cardB"></div><div class="pane" id="paneB"></div></div>
 </div>
 <div id="legend"></div>
-<div id="note">Tube radii drawn ×2 for visibility. Deformations are exaggerated. Drag to orbit, scroll to zoom
+<div id="note"><b>Supports:</b> pinned at x = 0 (u<sub>x</sub> = u<sub>y</sub> = u<sub>z</sub> = 0, pyramids on a base plate);
+  on rollers at x = 15 m (u<sub>y</sub> = u<sub>z</sub> = 0, free to slide along the span).
+  <b>Loads:</b> 5 kPa pedestrian pressure on the deck (orange arrows) plus the self-weight of all steel.<br>
+  Tube radii drawn ×2 for visibility. Deformations are exaggerated. Drag to orbit, scroll to zoom
   (the two views move together). Hover a member for its values.</div>
 <div id="tip"></div>
 <div id="status">Loading…</div>
@@ -223,11 +227,45 @@ function deform(d, shape, amp) {
 // ---------- scenes ----------
 const designs = [buildDesign(D.initial), buildDesign(D.optimized)];
 const panes = [document.getElementById("paneA"), document.getElementById("paneB")];
+// supports (pinned at x = 0, rollers at x = 15) and deck-pressure arrows
+function supportsAndLoads() {
+  const g = new THREE.Group();
+  const ink = new THREE.MeshLambertMaterial({ color: 0x55534e });
+  const h = 0.5, rb = 0.3;
+  for (const x of [0, 15]) for (const y of [0, 3]) {
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(rb, h, 4), ink);
+    cone.rotation.x = Math.PI / 2;                     // apex up, touching the support node
+    cone.position.set(x, y, -h / 2 - 0.03);
+    g.add(cone);
+    let zBase = -h - 0.03;
+    if (x === 15) {                                    // rollers: free to slide along x
+      for (const dx of [-0.13, 0.13]) {
+        const c = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.42, 16), ink);
+        c.position.set(x + dx, y, zBase - 0.075);
+        g.add(c);
+      }
+      zBase -= 0.15;
+    }
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.62, 0.05), ink);
+    plate.position.set(x, y, zBase - 0.025);
+    g.add(plate);
+  }
+  const load = new THREE.MeshLambertMaterial({ color: 0xeb6834 });
+  const shaft = new THREE.CylinderGeometry(0.03, 0.03, 0.5, 8), head = new THREE.ConeGeometry(0.1, 0.22, 12);
+  for (let x = 0.75; x < 15; x += 1.5) for (const y of [0.4, 1.5, 2.6]) {
+    const s = new THREE.Mesh(shaft, load); s.rotation.x = Math.PI / 2; s.position.set(x, y, 0.5); g.add(s);
+    const c = new THREE.Mesh(head, load); c.rotation.x = -Math.PI / 2; c.position.set(x, y, 0.13); g.add(c);
+  }
+  return g;
+}
+const bcGroups = [];
+
 const views = panes.map((el, i) => {
   const scene = new THREE.Scene();
   scene.add(new THREE.HemisphereLight(0xffffff, 0x666666, 2.2));
   const dl = new THREE.DirectionalLight(0xffffff, 1.2); dl.position.set(4, -8, 12); scene.add(dl);
   scene.add(designs[i].mesh, designs[i].deck);
+  const bc = supportsAndLoads(); bcGroups.push(bc); scene.add(bc);
   const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 300);
   cam.up.set(0, 0, 1); cam.position.set(-1.0, -14.5, 7.5);
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -269,7 +307,8 @@ function card(el, S) {
     ${item("Fatigue FS", R.fatigue_FS.toFixed(2), R.fatigue_FS >= 1.999)}
     ${item("Max deflection", R.defl_mm.toFixed(1) + " mm", R.defl_mm <= L.defl_mm)}
     ${item("Lowest freq.", R.f1_Hz.toFixed(2) + " Hz", R.f1_Hz >= L.f1 - 1e-3)}
-    ${item("Buckling λ_cr", R.lam_cr.toFixed(2), R.lam_cr >= L.lam - 1e-3)}
+    ${item("Buckling α_cr", R.lam_cr.toFixed(2), R.lam_cr >= L.lam - 1e-3)}
+    ${R.slender_max === undefined ? "" : item("Max slenderness L/r", R.slender_max.toFixed(0), R.slender_max <= L.slender + 1e-6)}
   </div>`;
 }
 card(document.getElementById("cardA"), D.initial);
@@ -300,6 +339,7 @@ let field = "util", shape = "static", playing = true;
 function recolorAll() { designs.forEach(d => recolor(d, field)); legend(field); }
 $("field").onchange = e => { field = e.target.value; recolorAll(); };
 $("shape").onchange = e => { shape = e.target.value; };
+$("bc").onchange = e => bcGroups.forEach(g => g.visible = e.target.checked);
 $("play").onclick = e => { playing = !playing; e.target.textContent = playing ? "Pause" : "Play"; e.target.setAttribute("aria-pressed", playing); };
 function ampBase() {
   const s = +$("scale").value / 100;
