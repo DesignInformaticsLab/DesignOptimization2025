@@ -13,18 +13,18 @@ kernelspec:
 
 ## Introduction
 
-In MEE342 you designed a pedestrian bridge by hand and checked it in ANSYS: draw a
-structure, run the analysis, read the stresses, change a few beams, run it again. That
-loop works for a handful of design variables. It breaks down when a bridge has
-hundreds of members, each with its own size, and the analysis has to tell you **which way
-to change every one of them at once**.
+A common way to design a structure is to iterate by hand: draw it, run a finite element
+analysis (in ANSYS, for example), read the stresses, change a few dimensions, and run it
+again. That loop works for a handful of design variables. It breaks down when a structure
+has hundreds of members, each with its own size, and the analysis has to tell you **which
+way to change every one of them at once**.
 
 Project 4 closes that loop with optimization, for an engineering structure of your
 team's choice: a bridge, a bracket, a heat sink, a compliant gripper, a cold plate, and
 so on (see [the menu](#anchor-structures)). Your team will:
 
-1. **vibe code** (with a coding agent) its own finite element analysis of the structure,
-   and **verify** it against exact solutions;
+1. write (with a coding agent) its own finite element analysis of the structure, and
+   **verify** it against exact solutions;
 2. make that analysis **differentiable**, so that one extra linear solve returns the
    gradient of each performance metric with respect to *all* design variables;
 3. optimize the design subject to several performance requirements, at least one of
@@ -36,22 +36,21 @@ In every one of these problems, each performance metric is a **functional of the
 of a PDE**: stresses and displacements come from elasticity, temperatures from the heat
 equation, pressure drops from the Stokes or Navier–Stokes equations, frequencies and
 buckling loads from eigenproblems of the same operators. That is what makes this
-**PDE-constrained optimization**. It is the same structure as the reduced-gradient derivation in the
-[KKT notes](constrained_optimization_pt1_2026.md) (sections 7–8): the PDE solution
-(displacements, temperatures, velocities) is the **state**, the geometry is the
-**decision**, and the adjoint variable is the Lagrange multiplier on the state equation. Projects 2 and 3 also
-connect: the stiffness matrix is ill-conditioned ([Project 2](project2.md)), and a
-trained surrogate is an alternative to the solver you will write here
-([Project 3](project3.md)).
-
-These notes use one structure as a **worked example** throughout: the MEE342 steel
-footbridge. The interactive figure below is the instructor's prototype of it. It uses one
-set of modeling choices (Pratt truss, 187 tube members, deck loads carried by stringers,
-linear buckling). It shows what a finished 3D comparison looks like; it is not a target
-for your numbers. Drag to orbit, switch the coloring and the deformed shape, and hover
-over members.
+**PDE-constrained optimization**. It has the same structure as the reduced-gradient
+derivation in the [KKT notes](constrained_optimization_pt1_2026.md) (sections 7–8): the
+PDE solution (displacements, temperatures, velocities) is the **state**, the geometry is
+the **decision**, and the adjoint variable is the Lagrange multiplier on the state
+equation. Projects 2 and 3 also connect: the stiffness matrix is ill-conditioned
+([Project 2](project2.md)), and a trained surrogate is an alternative to the solver you
+will write here ([Project 3](project3.md)).
 
 (anchor-p4-demo)=
+These notes use one structure as a **worked example** throughout: a steel footbridge
+(a pedestrian bridge). The interactive figure below is the instructor's prototype of it,
+with one set of modeling choices (a Pratt truss of 187 tubes, deck loads carried by
+stringers, linear buckling). It shows what a finished 3D comparison looks like; it is not
+a target for your numbers. Dark pyramids mark the supports and orange arrows the deck
+load. Drag to orbit, switch the coloring and the deformed shape, and hover over members.
 
 ```{raw} html
 <iframe class="p4-demo" src="_static/project4/bridge_demo.html" title="Initial vs. optimized footbridge, interactive 3D" loading="lazy"></iframe>
@@ -64,20 +63,24 @@ over members.
 </script>
 ```
 
-| Prototype result | Initial (all tubes $r = 50$ mm, depth 2 m) | Optimized |
-|---|---|---|
-| Total mass (steel + deck) | 6,716 kg | 6,363 kg |
-| Steel mass | 3,890 kg | 3,537 kg |
-| Truss depth $H$ | 2.00 m | 3.05 m |
-| Max von Mises stress | 173.0 MPa | 50.3 MPa |
-| Fatigue factor of safety (Goodman) | 0.62 ✗ | 2.12 ✓ |
-| Max deck deflection | 22.2 mm | 12.9 mm |
-| Lowest natural frequency | 8.04 Hz | 4.47 Hz |
-| Linear buckling load factor $\lambda_{cr}$ | 20.9 | 3.07 |
+| Prototype result | Starting design (all tubes $r = 50$ mm, depth 2 m) | Lightest uniform design that meets every requirement ($r = 75$ mm, depth 3 m) | Optimized |
+|---|---|---|---|
+| Total mass (steel + deck) | 6,716 kg | 12,610 kg | 6,639 kg |
+| Steel mass | 3,890 kg | 9,784 kg | 3,813 kg |
+| Truss depth $H$ | 2.00 m | 3.00 m | 2.70 m |
+| Max von Mises stress | 173.0 MPa | 53.3 MPa | 50.2 MPa |
+| Fatigue factor of safety (Goodman, $\ge 2$) | 0.62 ✗ | 2.00 ✓ | 2.12 ✓ |
+| Max deck deflection ($\le 37.5$ mm) | 22.2 mm | 6.4 mm | 10.6 mm |
+| Lowest natural frequency ($\ge 3$ Hz) | 8.04 Hz | 7.35 Hz | 6.21 Hz |
+| Buckling load factor $\alpha_{cr}$ ($\ge 3$) | 20.9 | 60.8 | 7.00 |
+| Max member slenderness $L/r_g$ ($\le 200$) | 100 | 66 | 200 |
 
-The initial design is heavier *and* infeasible (it fails fatigue). The optimizer (SLSQP
-on 188 variables, 266 iterations, 5 minutes on a laptop) made it lighter and feasible at
-the same time. Fatigue and buckling are the active constraints at the optimum.
+The starting design fails fatigue. Making every tube the same size, just thick enough to
+pass every requirement, takes 9,784 kg of steel. The optimizer (SLSQP, 188 design
+variables, 260 iterations, under a minute on a laptop) found a design that passes every
+requirement with 3,813 kg: **61% less steel**. Two requirements are active at the
+optimum: fatigue, which sizes the chords, diagonals, and floor system, and slenderness,
+which sizes the lightly loaded bracing and verticals.
 
 ---
 
@@ -105,10 +108,10 @@ Bonus work (up to 15 points) is listed in the [rubric](#anchor-rubric).
 
 | Date | Event |
 |------|-------|
-| Oct 28 | Project released |
-| Nov 4 | Structure chosen and site URL added to the course participation sheet (column "Project 4 URL"). Teams proposing their own structure need the instructor's approval by this date |
-| Nov 18 | Presenting teams announced |
-| Nov 25 | In-class presentations; final site due (we grade the commit at the deadline) |
+| Oct&nbsp;28 | Project released |
+| Nov&nbsp;4 | Structure chosen and site URL added to the course participation sheet (column "Project 4 URL"). Teams proposing their own structure need the instructor's approval by this date |
+| Nov&nbsp;18 | Presenting teams announced |
+| Nov&nbsp;25 | In-class presentations; final site due (we grade the commit at the deadline) |
 
 ---
 
@@ -144,15 +147,29 @@ Write your own requirements with **explicit formulas and limits**, in the style 
 [worked example](#anchor-requirements). Where a limit comes from a standard or a data
 sheet, cite it.
 
+(anchor-from-project3)=
+**Extending your Project 3 problem.** In Project 3 your team studied a researcher's PDE.
+You may turn it into a design study for Project 4: choose design variables the researcher
+actually controls (a geometry, a boundary condition, a material distribution) and an
+objective and constraints they care about. The same requirements apply as for everyone
+else, including your own finite element solver with adjoint gradients and a nonlinear
+component. If you trained a PINO in Project 3 (or a PINN that takes the design variables
+as inputs), you can also try it as a **surrogate inside the optimization loop** for a
+bonus. Automatic differentiation of the network gives design gradients for free, but they
+can be badly wrong even where the predicted field looks accurate: the network was trained
+to match field values, not their derivatives with respect to the design. Compare the
+surrogate's gradients and optimum with your solver's, and report where they disagree.
+
 (anchor-nonlinear-component)=
 ### The nonlinear component
 
 At least one of your requirements must go beyond a linear PDE solve. Two kinds count:
 
 - **N1: linearized about a computed state.** An eigenvalue problem whose operator depends
-  on the state, such as linear buckling ($K_G$ built from the static stresses) or
-  stress-stiffened vibration. The gradient needs an eigenvalue sensitivity **plus** an
-  adjoint solve through the state.
+  on the state, such as linear buckling (the geometric stiffness $K_G$, defined
+  [below](#anchor-where-pde), is built from the static stresses) or stress-stiffened
+  vibration. The gradient needs an eigenvalue sensitivity **plus** an adjoint solve
+  through the state.
 - **N2: a nonlinear state equation.** The PDE itself is nonlinear (large deformation,
   radiation, temperature-dependent properties, Navier–Stokes inertia, hyperelasticity,
   plasticity), so you solve it with Newton's method and differentiate it implicitly at
@@ -160,19 +177,19 @@ At least one of your requirements must go beyond a linear PDE solve. Two kinds c
 
 Either way, report the optimized design **with and without** the nonlinear component, and
 explain what changed. If nonlinearity does not change your design, say so and show the
-evidence; that is a valid finding (it is what happened for the bridge at service loads).
+evidence; that is a valid finding (see [the footbridge](#anchor-bridge-nonlinearity)).
 
 ---
 
 (anchor-worked-example)=
-## Worked example: the MEE342 footbridge
+## Worked example: a steel footbridge
 
 The problem is adapted from the
 [MEE342 bridge activity](https://github.com/DesignInformaticsLab/DesignInformaticsLab.github.io/blob/master/mee342_bridge_design.md).
-Two things change: you write the analysis instead of using ANSYS, and every requirement is
-written as an explicit formula, because your code (not ANSYS) has to evaluate it. Teams
-that choose the footbridge use this specification as written. Other teams should use it
-as the model for their own.
+Two things change from that activity: you write the analysis instead of using commercial
+software, and every requirement is written as an explicit formula, because your code has
+to evaluate it. Teams that choose the footbridge use this specification as written.
+Other teams should use it as the model for their own.
 
 ### Geometry, loads, and material
 
@@ -180,15 +197,16 @@ as the model for their own.
 |---|---|
 | Span $L$ | 15.0 m, simply supported |
 | Deck | 3.0 m wide, 8 mm steel plate covering the full 15 m × 3 m footprint (not a design variable) |
-| Supports | Along the two deck end lines. Left end pinned: $u_x = u_y = u_z = 0$. Right end: $u_y = u_z = 0$ ($u_x$ free). Apply them to the end nodes on each end line, not to a single node |
+| Supports | Along the two deck end lines. Left end pinned: $u_x = u_y = u_z = 0$. Right end on rollers: $u_y = u_z = 0$ ($u_x$ free). Apply them to the end nodes on each end line, not to a single node |
 | Load case | Self-weight of all steel (members and deck) + pedestrian pressure $q = 5.0$ kPa downward on the whole deck. Axes: $+z$ up, $x$ along the span |
-| Material | Structural steel: $E = 200$ GPa, $\nu = 0.3$, $\rho = 7850$ kg/m³, $S_y = 250$ MPa, $S_{ut} = 460$ MPa, fatigue strength $S_f(10^6) = 86.2$ MPa (the ANSYS structural-steel S–N curve at $10^6$ cycles) |
+| Material | Structural steel: $E = 200$ GPa, $\nu = 0.3$, $\rho = 7850$ kg/m³, $S_y = 250$ MPa, $S_{ut} = 460$ MPa, fatigue strength $S_f(10^6) = 86.2$ MPa (the S–N curve of ANSYS's default structural steel at $10^6$ cycles) |
 | Members | Circular hollow sections (CHS). Outer radius $r$; wall $t = r/10$ (so the section has one size variable); $10 \le r \le 150$ mm. Other section families are allowed if you document the formulas |
 | Joints | Rigid (frame members share nodes; no joint flexibility) |
+| Discretization | At least two beam elements per member. One cubic element cannot represent a member's own buckling mode or the bending of a loaded stringer |
 
 The structural concept is yours: Pratt, Warren, or Howe trusses, an arch, a Vierendeel
 frame, an underslung truss, and so on. The deck must have **interior support lines**
-(stringers or cross-beams), as in MEE342.
+(stringers or cross-beams).
 
 (anchor-requirements)=
 ### Requirements
@@ -201,18 +219,41 @@ frame, an underslung truss, and so on. The deck must have **interior support lin
 | R2 | Fatigue | Goodman factor of safety $n_f \ge 2$ (see below) |
 | R3 | Deflection | Max vertical deck deflection $\le L/400 = 37.5$ mm |
 | R4 | Vibration | **Lowest** natural frequency (any mode shape) $\ge 3.0$ Hz. Mass = steel + deck; pedestrians are not included |
-| R5 | Stability (new) | Route S1: linear buckling load factor $\lambda_{cr} \ge 3.0$; or route S2 (nonlinear). See [the bridge's nonlinear component](#anchor-stability-routes) |
+| R5 | Stability | Route S1: linear buckling load factor $\alpha_{cr} \ge 3.0$; or route S2 (nonlinear). See [the bridge's nonlinear component](#anchor-stability-routes) |
+| R6 | Slenderness | Every member: $L_m / r_g \le 200$, where $L_m$ is the member length and $r_g = \sqrt{I/A}$ its radius of gyration ($r_g = 0.673\,r$ for $t = r/10$) |
 
-Two of these differ from MEE342 on purpose:
+**Stress.** For a CHS member with internal forces $(N, T, M_y, M_z)$ (axial force,
+torque, and the two bending moments), evaluate at both ends of every element
+
+$$
+\sigma = \frac{|N|}{A} + \frac{\sqrt{M_y^2 + M_z^2}}{I/r}, \qquad
+\tau = \frac{|T|\, r}{J}, \qquad
+\sigma_{vM} = \sqrt{\sigma^2 + 3\tau^2},
+$$
+
+with $r_i = 0.9r$, $A = \pi(r^2 - r_i^2)$, $I = \tfrac{\pi}{4}(r^4 - r_i^4)$, and
+$J = 2I$. Transverse shear stress is neglected for slender members.
+
+Three requirements need explanation:
 
 - **R4 uses the lowest frequency of any mode**, not "the first vertical mode." Deciding
   which mode is "vertical" is a discrete classification that jumps when two modes swap
   order, which breaks gradients. The lowest-frequency rule is conservative and smooth
   (after aggregation; see [eigenvalue sensitivities](#anchor-eigen-sensitivity)).
-- **R5 is new.** Minimum-mass optimization pushes compression members to be slender.
-  In an early version of our prototype without a buckling requirement, the optimized
-  bridge had compression members loaded to 2.3 times their allowable Euler load (with a
-  safety factor of 2); it would buckle.
+- **R5 (buckling).** Minimum-mass optimization pushes compression members to be slender.
+  In an early version of our prototype, without R5 and R6, the optimized bridge had
+  compression members loaded to 2.3 times their allowable Euler buckling load (with a
+  safety factor of 2). It would have buckled.
+- **R6 (slenderness) protects members that carry almost no load.** Under this single,
+  symmetric gravity load, the top struts and lateral bracing carry less than 2 kN. An
+  optimizer therefore shrinks them to the smallest size allowed: in our prototype without
+  R6 they ended at $r = 10$ mm, with $L_m/r_g \approx 450$, and the buckling requirement
+  became active only because these nearly unloaded struts were so thin. Their real job,
+  keeping the compressed top chords from buckling sideways and carrying wind and
+  unbalanced crowd loads, is not in the load case. Steel design codes handle this with
+  slenderness limits: AISC 360 recommends $L/r \le 200$ for compression members and
+  $\le 300$ for tension members, and R6 uses 200 for every member. The general lesson:
+  **an optimizer removes whatever your load cases and constraints do not ask for.**
 
 **Fatigue (R2), Goodman form.** The loading cycles between zero and the full design
 load ("zero-based"), so at every point the stress amplitude and the mean stress are equal:
@@ -235,9 +276,8 @@ $$
 
 So R2 is a stress limit of **53.3 MPa**, which is much tighter than the 160 MPa of R1.
 Fatigue governs; R1 can never be active once R2 holds. Report both anyway. (Using von
-Mises stress, which is always positive, as both amplitude and mean follows the MEE342
-instruction to use equivalent stress for fatigue. It is conservative for members in
-compression.)
+Mises stress, which is always positive, for both amplitude and mean is conservative for
+members in compression.)
 
 ### Design variables
 
@@ -253,9 +293,9 @@ compression.)
 Pick one option:
 
 - **D1: shell deck.** Model the 8 mm plate with shell (or plate + membrane) elements
-  that share nodes with the members, as in the ANSYS activity. Add a shell verification
-  test to your ladder (a simply supported square plate under uniform pressure, against
-  the Navier series solution).
+  that share nodes with the members. Add a shell verification test to your ladder (a
+  simply supported square plate under uniform pressure, against the Navier series
+  solution).
 - **D2: deck as loads and mass.** Do not model the plate's stiffness. Apply the deck's
   pressure and self-weight as **line loads on the members that support the deck**, using
   tributary widths (a one-way plate spanning between stringers). Add the deck mass to
@@ -277,49 +317,89 @@ minimum size: a perfectly "optimal" answer to the wrong model. Subdivide the str
 (at least two elements per member) and spread the load along them.
 ```
 
-### Nonlinearity in the footbridge
+(anchor-bridge-nonlinearity)=
+### Does the footbridge need a nonlinear analysis?
 
-We tested this before writing the project; you should not have to rediscover it.
+The figure compares a linear analysis (dashed) with a nonlinear one (solid) in three
+situations a steel bridge can be in. Panels A and C come from the instructor's prototype;
+panel B is the textbook result for a slightly crooked column.
 
-1. **Geometric nonlinearity barely matters at the design load.** On a pin-jointed version
-   of the bridge, the nonlinear midspan deflection differed from the linear one by
-   **0.08%** at the design load, 0.39% at 5 times the design load, and 1.4% at 20 times.
-   Steel bridges at service loads are linear. Nonlinearity changes the *design* only
-   through **stability** and **ultimate strength**.
-2. **The model must be able to show the failure you are checking.** The pin-jointed model
-   has no member buckling, so its "limit load" search ran to 190 times the design load at
-   3.6 m of deflection, which is meaningless. Beam elements (at least two per member) are
-   needed.
-3. **Plasticity is path dependent and fragile.** With 1% strain hardening, Newton's method
-   diverged right after first yield, because a nearly statically determinate truss turns
-   into a mechanism once one member yields. A line search (and, for true collapse loads,
-   arc-length continuation) fixed it. The path-dependent adjoint through 23 loading and
-   unloading steps then matched finite differences to 7 digits.
+```{figure} _static/project4/nonlinear_regimes.png
+:name: fig-p4-nonlinear
+:width: 100%
+
+When nonlinear analysis matters. **A**: geometric nonlinearity in a pin-jointed version
+of the bridge (40 mm tubes), up to 20 times the design load. **B**: a compressed member
+with a small initial bow; the bow is amplified by $1/(1 - P/P_{cr})$. **C**: a
+deliberately undersized version of the truss (25 mm tubes, so that members yield below
+the design load), loaded to 0.95 times the design load and unloaded.
+```
+
+**A. Large displacements at the design load: no.** A geometrically nonlinear analysis
+writes equilibrium on the *deformed* shape instead of the original one. Under the design
+load the panel A truss sags about 1/800 of its span, so the change in shape is too small to
+matter: the two analyses differ by 0.08% at the design load, and by only 1.4% at twenty
+times the design load. This is typical of steel structures in service.
+
+**B. Approaching buckling: yes, and this is what R5 is about.** No compressed member is
+perfectly straight. Start one with a small bow $w_0$ and load it with a compressive force
+$P$: a nonlinear analysis shows the bow growing to $w = w_0/(1 - P/P_{cr})$, where
+$P_{cr}$ is its buckling load, while a linear analysis predicts no growth at all. The
+curve is flat at low load and explodes near $P_{cr}$. Requiring $\alpha_{cr} \ge 3$
+keeps every compressed member below one third of its buckling load at the design load,
+where bows grow by at most 1.5 times and the linear analysis remains trustworthy. The
+optimized bridge has $\alpha_{cr} = 7.0$ (its most critical members are thin interior
+verticals near midspan), so its bows grow by at most 1.17 times.
+
+**C. Beyond yield: yes, and the loading history matters.** Up to first yield (0.78 times
+the design load for this undersized truss), the two analyses agree. Beyond it, yielded
+members stop taking extra load, the deflection grows faster than the linear prediction,
+and unloading leaves a permanent sag of 55 mm. Because the result depends on the loading
+history, its gradient needs an adjoint that runs backward through the load steps
+([Background §6](#anchor-nonlinear-pdes)). The optimized bridge never reaches this
+regime in service: fatigue keeps its stresses below 53.3 MPa, far below the 250 MPa yield
+strength. Plasticity matters for its collapse strength, which you can study for a bonus.
+
+Two lessons for any model:
+
+1. **The model must be able to show the failure you are checking.** A pin-jointed model
+   has no bending, so its members cannot buckle one by one. Searching for its buckling
+   load gave 190 times the design load at 3.6 m of sag, which is meaningless. To capture
+   member buckling, use beam elements, at least two per member.
+2. **Nonlinear solves need care.** With 1% strain hardening, Newton's method failed just
+   after first yield in the panel C truss: the truss is nearly statically determinate,
+   so it becomes a mechanism once a single member yields. A line search fixed it
+   (collapse loads need arc-length continuation). With that in place, the path-dependent
+   adjoint through 23 loading and unloading steps matched finite differences to 7 digits.
 
 (anchor-stability-routes)=
 #### The bridge's nonlinear component (R5)
 
 Choose one route.
 
-- **S1: linear buckling (an N1 component).** Compute the axial forces $N$ from the linear static solution
-  under the full design load, assemble $K_G(N)$, and find the smallest positive
-  $\lambda$ with $(K + \lambda K_G)\phi = 0$. Require $\lambda_{cr} \ge 3.0$. The
-  factor 3 covers what the eigenvalue analysis ignores: imperfections, residual stresses,
-  and plasticity. Gradients: [eigenvalue sensitivities](#anchor-eigen-sensitivity), with
-  the adjoint term through $N(u)$.
-- **S2: geometrically nonlinear (an N2 component).** Use a corotational (or total Lagrangian)
-  3D frame formulation. Add an initial imperfection shaped like the first buckling mode,
-  scaled to a peak of 10 mm. Solve the nonlinear equilibrium $R(u; d, \bar\lambda) = 0$
-  up to load factor $\bar\lambda = 2.0$ with load stepping. At that state, compute the
-  smallest eigenvalue $\mu_{\min}$ of $K_T\varphi = \mu K_0 \varphi$ (where $K_0$ is the
-  small-displacement stiffness), and require $\mu_{\min} \ge 1/3$. For a perfectly linear
-  pre-buckling response, $K_T \approx K + 2K_G$, and this reduces to $\lambda_{cr} \ge 3$,
-  so S1 and S2 agree in the linear limit; S2 adds imperfections and large rotations.
-  Gradients: the custom rule around Newton (implementation iii) combined with the
-  eigenvalue sensitivity of $K_T(u(d), d)$. Add V7 to your ladder.
+- **S1: linear buckling (an N1 component).** Compute the axial forces $N$ from the linear
+  static solution under the full design load, assemble $K_G(N)$, and find the smallest
+  positive load factor $\alpha$ with $(K + \alpha K_G)\phi = 0$. Require
+  $\alpha_{cr} \ge 3.0$. The factor 3 covers what the eigenvalue analysis ignores:
+  imperfections (panel B), residual stresses, and plasticity. Gradients:
+  [eigenvalue sensitivities](#anchor-eigen-sensitivity), with the adjoint term through
+  $N(u)$.
+- **S2: geometrically nonlinear (an N2 component).** Use a corotational (or total
+  Lagrangian) 3D frame formulation. Add an initial imperfection shaped like the first
+  buckling mode, scaled to a peak of 10 mm. Solve the nonlinear equilibrium
+  $R(u; d, \bar\alpha) = 0$ up to load factor $\bar\alpha = 2.0$ with load stepping. At
+  that state, compute the smallest eigenvalue $\mu_{\min}$ of $K_T\varphi = \mu K_0
+  \varphi$ (where $K_T$ is the tangent stiffness and $K_0$ the small-displacement
+  stiffness), and require $\mu_{\min} \ge 1/3$. For a perfectly linear pre-buckling
+  response, $K_T \approx K + 2K_G$, and this reduces to $\alpha_{cr} \ge 3$, so S1 and S2
+  agree in the linear limit; S2 adds imperfections and large rotations. Gradients: the
+  custom rule around Newton (implementation iii) combined with the eigenvalue sensitivity
+  of $K_T(u(d), d)$. Add V7 to your ladder.
 
-In both routes, report the design **with and without** R5 and explain the difference.
-Which members grew? Did the truss get deeper?
+In both routes, report the design **with and without** R5 and explain the difference. In
+our prototype, R5 turned out to be inactive once R6 was in place ($\alpha_{cr} = 7.0$):
+the slenderness limit already prevents the buckling that R5 guards against. That is a
+legitimate finding, but you have to show it.
 
 ---
 
@@ -347,72 +427,62 @@ $$
 where $K$ is the stiffness matrix and $F$ is the load vector (which depends on $d$
 through self-weight). In the bridge prototype, $n = 188$ and $m = 1{,}574$.
 
-**Where is the PDE in the bridge?** The members obey 3D linear elasticity. Beam theory reduces that PDE
-to an ODE along each member's axis (Euler–Bernoulli or Timoshenko), and the deck plate is
-a 2D PDE (Kirchhoff–Love or Mindlin plate theory). The finite element method turns all of
-it into $K(d)u = F(d)$. The other responses come from the same operator: natural
-frequencies from $K\phi = \omega^2 M \phi$, and buckling from
-$(K + \lambda K_G)\phi = 0$.
+(anchor-where-pde)=
+**Where is the PDE in the bridge?** The members obey 3D linear elasticity. Beam theory
+reduces that PDE to an ODE along each member's axis (Euler–Bernoulli or Timoshenko), and
+the deck plate is a 2D PDE (Kirchhoff–Love or Mindlin plate theory). The finite element
+method turns all of it into $K(d)u = F(d)$. The two other analyses use the same
+stiffness matrix:
+
+- **Vibration:** $K\phi = \omega^2 M\phi$. Here $M$ is the **mass matrix** (it plays for
+  kinetic energy the role $K$ plays for strain energy), $\omega$ is a natural frequency
+  in rad/s (in Hz, $f = \omega/2\pi$), and the vector $\phi$ is its **mode shape**: the
+  pattern of nodal displacements in which the structure vibrates at that frequency.
+- **Linear buckling:** $(K + \alpha K_G)\phi = 0$. Here $K_G$ is the **geometric
+  stiffness matrix**. It describes how forces already in the members change their
+  stiffness against sideways motion: tension stiffens a member (like a tightened guitar
+  string), and compression softens it. It is assembled from the member forces under the
+  design load, so it depends on the static solution $u$. The scalar $\alpha$ is a
+  **load factor** that multiplies the whole design load; the smallest positive $\alpha$
+  that makes $K + \alpha K_G$ singular is the buckling load factor $\alpha_{cr}$, and
+  $\phi$ is the buckling mode. (Many texts write $\lambda$ for the load factor; we use
+  $\alpha$ because $\lambda$ is the adjoint variable below.)
 
 There are two ways to solve such a problem:
 
-- **Nested (reduced-space, "NAND").** Treat $u = u(d)$ as an implicit function of $d$:
-  every time the optimizer proposes a $d$, solve the PDE, evaluate $f$ and $g$, and
-  compute their gradients by the adjoint method. This is what structural optimization
-  almost always does, and what you will do.
-- **Simultaneous (full-space, "SAND", all-at-once).** Make $u$ an optimization variable
-  too and let the optimizer satisfy $h = 0$ only at convergence, typically with
-  Newton–Krylov methods on the full KKT system (Biros & Ghattas, 2005). This pays off
-  for very large or time-dependent problems (CFD, inverse problems), where a full PDE
-  solve per iteration is too expensive.
+- **Nested analysis and design (NAND), also called reduced-space.** Treat $u = u(d)$ as
+  an implicit function of $d$: every time the optimizer proposes a $d$, solve the PDE,
+  evaluate $f$ and $g$, and compute their gradients by the adjoint method. This is what
+  structural optimization almost always does, and what you will do.
+- **Simultaneous analysis and design (SAND), also called full-space or all-at-once.**
+  Make $u$ an optimization variable too, and let the optimizer satisfy $h = 0$ only at
+  convergence, typically with Newton–Krylov methods on the full KKT system (Biros &
+  Ghattas, 2005). This pays off for very large or time-dependent problems where a full
+  PDE solve per optimizer iteration is too expensive, such as flow control and
+  parameter estimation (inferring unknown material properties or initial conditions from
+  measurements, as in seismic imaging or weather forecasting).
 
 ### 2. Building the analysis
 
-This is what your coding agent will write. Keep it small and testable. For any structure:
+Coding agents know how to write finite element codes; what they cannot tell you is
+whether the result is right. Three rules:
 
-- **Element level first.** Write one function that maps an element's geometry, design
-  variables, and state to its matrices, load vector, and outputs (stress, heat flux).
-  Everything else is assembly. This is also the function you will differentiate.
-- **Sparse linear algebra.** Assemble global matrices as sparse matrices and use a sparse
-  factorization (`scipy.sparse.linalg.splu`) and, for eigenproblems, a shift-invert
-  solver (`scipy.sparse.linalg.eigsh` with `sigma=0`). In the bridge prototype, one
-  analysis with all four constraint gradients took **4.7 s with dense matrices and 0.6 s
-  with sparse ones**. Over 266 optimizer iterations, that is roughly 20 minutes versus 3.
-- **Units and precision.** SI units throughout, double precision everywhere.
-- **Libraries.** You may use a mesher and plotting libraries. You may use FE libraries
-  such as scikit-fem or FEniCSx to *check* your solver, but the graded solver, including
-  its gradients, must be your own.
-
-For a 3D frame (the worked example):
-
-- **3D frame element.** 2 nodes, 6 DOFs per node (3 translations, 3 rotations), so a
-  12 × 12 element stiffness matrix: axial ($EA/L$), torsion ($GJ/L$), and bending in two
-  planes ($EI$), transformed to global coordinates by a rotation matrix built from the
-  member axis and a reference vector. Vertical members need a different reference vector;
-  this is the most common bug in vibe-coded frame codes.
-- **Mass and geometric stiffness.** The consistent mass matrix $M_e$ for frequencies and
-  the geometric stiffness $K_{G,e}(N)$ (proportional to the member's axial force $N$) for
-  buckling.
-- **Discretization.** Use **at least two elements per member**. One cubic element cannot
-  represent a member's own buckling mode or the bending of a loaded stringer.
-- **Stress recovery.** For a CHS member with end forces $(N, T, M_y, M_z)$,
-
-  $$
-  \sigma = \frac{|N|}{A} + \frac{\sqrt{M_y^2 + M_z^2}}{I/r}, \qquad
-  \tau = \frac{|T|\, r}{J}, \qquad
-  \sigma_{vM} = \sqrt{\sigma^2 + 3\tau^2},
-  $$
-
-  evaluated at both ends of every element (transverse shear is neglected for slender
-  members; say so). With $r_i = 0.9r$:
-  $A = \pi(r^2 - r_i^2)$, $I = \tfrac{\pi}{4}(r^4 - r_i^4)$, $J = 2I$.
+- **Keep the element function separate.** One function maps an element's geometry,
+  design variables, and state to its matrices, loads, and outputs (such as stress).
+  Everything else is assembly, and this is also the function you will differentiate.
+- **Use sparse matrices** (`scipy.sparse`) for the global system. In the bridge
+  prototype, one analysis with all four constraint gradients took 0.07 s with sparse
+  matrices and 0.9 s with dense ones.
+- **Use your own solver.** You may use meshers, plotting libraries, and FE libraries such
+  as scikit-fem or FEniCSx to *check* your results, but the graded solver, including its
+  gradients, must be your own.
 
 (anchor-verification-ladder)=
 #### The verification ladder
 
-A vibe-coded solver is wrong until proven otherwise. Before optimizing, build a ladder of
-at least six tests and report each one in a table: your number, the exact number, and the
-relative error. Every ladder needs these kinds of rungs:
+A solver written with a coding agent is wrong until proven otherwise. Before optimizing,
+build a ladder of at least six tests and report each one in a table: your number, the
+exact number, and the relative error. Every ladder needs these kinds of rungs:
 
 | Kind of test | What it catches | Examples |
 |---|---|---|
@@ -434,11 +504,12 @@ The worked example's ladder:
 | **V5** Global checks | Free–free bridge model; supported bridge | Exactly 6 zero-frequency modes; support reactions sum to the total load |
 | **V6** Gradient check | Every constraint, several random directions $v$ | Adjoint $\nabla g \cdot v$ vs. central difference; plot the error against the step size $\epsilon$ (it should fall as $\epsilon^2$ until round-off) |
 
-For N2 and plasticity, the bridge ladder adds **V7** (the von Mises two-bar truss: compare your
-nonlinear path with the exact
+For N2 and plasticity, the bridge ladder adds **V7** (the von Mises two-bar truss:
+compare your nonlinear path with the exact
 $P(w) = 2EA\,\dfrac{L_0 - L(w)}{L_0}\cdot\dfrac{h - w}{L(w)}$ with
-$L(w) = \sqrt{a^2 + (h-w)^2}$) and **V8** (the symmetric three-bar truss: first yield at
-$P_y = \sigma_y A(1 + 2\cos^3\alpha)$ and collapse at $P_c = \sigma_y A(1 + 2\cos\alpha)$).
+$L(w) = \sqrt{a^2 + (h-w)^2}$) and **V8** (the symmetric three-bar truss with outer bars
+at angle $\theta$ from the vertical: first yield at $P_y = \sigma_y A(1 + 2\cos^3\theta)$
+and collapse at $P_c = \sigma_y A(1 + 2\cos\theta)$).
 
 ### 3. How to describe a design
 
@@ -456,9 +527,9 @@ $P_y = \sigma_y A(1 + 2\cos^3\alpha)$ and collapse at $P_c = \sigma_y A(1 + 2\co
 #### Why gradients, and why not finite differences
 
 A gradient by forward differences costs $n + 1$ analyses (central differences cost
-$2n$). In the prototype, one analysis took 0.29 s, so one finite-difference Jacobian of the
-four constraints would take **55–110 s**. The adjoint method gave all four gradients
-**exactly** in 0.63 s total, including the analysis itself. The cost of the adjoint
+$2n$). In the bridge prototype, one analysis took 0.056 s, so one finite-difference
+Jacobian of the four PDE-based constraints would take **11–21 s**. The adjoint method gave
+all four gradients **exactly** in 0.068 s total, including the analysis itself. The cost of the adjoint
 method grows with the number of *outputs*, not the number of design variables. That is
 why we aggregate many stress constraints into one (see below).
 
@@ -582,8 +653,8 @@ bridge (122 DOFs, load factor 20):
 
 | Gradient through a nonlinear solve | Cost | Accuracy (vs. central differences) |
 |---|---|---|
-| Implicit (custom rule above) | 0.8 s | Exact (6+ matching digits) |
-| Unrolled: AD through all 8 Newton iterations | 3.0 s, memory grows with iterations | Exact *if* Newton converged; wrong if stopped early |
+| Implicit (custom rule above) | 0.13 s | Exact (6+ matching digits) |
+| Unrolled: AD through all 8 Newton iterations | 0.32 s, memory grows with iterations | Exact *if* Newton converged; wrong if stopped early |
 | "Jacobian-free" backprop (replace $K_T^{-\top}$ by $I$) | Cheapest | **Wrong**: cosine similarity with the true gradient 0.09, magnitude off by $3\times10^6$ |
 
 Jacobian-free and "phantom" gradients (Fung et al., 2022; Geng et al., 2021) are
@@ -602,9 +673,17 @@ $$
 - \omega^2 \frac{\partial M}{\partial d_j}\right)\phi.
 $$
 
-This is implicit differentiation of the eigenproblem, and it needs no extra solve. For
-linear buckling, write the eigenproblem as $(-K_G)\psi = \mu K\psi$ with $\mu =
-1/\lambda_{cr}$ and $\psi^\top K\psi = 1$:
+This is implicit differentiation of the eigenproblem, and it needs no extra solve.
+
+**How it is used.** Compute the eigenpairs with any eigensolver, for example
+`scipy.sparse.linalg.eigsh`, which is not differentiable. Then apply the formula to the
+converged pair $(\omega^2, \phi)$. Nothing is differentiated *through* the eigensolver's
+iterations. This is the same idea as implicit differentiation of a nonlinear solve: find
+the solution by any means, then differentiate the equation that defines it, not the
+algorithm that found it.
+
+For linear buckling, write the eigenproblem as $(-K_G)\psi = \mu K\psi$ with
+$\mu = 1/\alpha_{cr}$ and $\psi^\top K\psi = 1$:
 
 $$
 \frac{\mathrm{d}\mu}{\mathrm{d} d_j} = \psi^\top\left(-\frac{\mathrm{d} K_G}{\mathrm{d} d_j}
@@ -636,7 +715,7 @@ a_{\max} \le \mathrm{KS}_\rho(a) \le a_{\max} + \frac{\ln N}{\rho}.
 $$
 
 With $a_i = \sigma_{vM,i}/53.3$ MPa, $N = 748$ and $\rho = 60$, the bound is conservative
-by at most 11%. In the prototype, the actual peak stress at the optimum was 50.3 MPa,
+by at most 11%. In the prototype, the actual peak stress at the optimum was 50.2 MPa,
 6% below the limit. The $p$-norm is a common alternative (Le et al., 2010). Report the
 true maximum alongside the aggregate.
 
@@ -652,7 +731,9 @@ true maximum alongside the aggregate.
 
 ### 5. Optimizers and practical issues
 
-- **Algorithms.** SciPy's `SLSQP` handled 188 variables and 4 constraints well.
+- **Algorithms.** SciPy's `SLSQP` handled the bridge's 188 variables well, with 4
+  aggregated PDE-based constraints plus 187 slenderness constraints (one per member;
+  they are explicit formulas, so they need neither an adjoint nor aggregation).
   `trust-constr` also returns Lagrange multipliers. For larger problems, use the method of
   moving asymptotes (MMA; Svanberg, 1987), the standard in structural optimization, or
   IPOPT (`cyipopt`).
@@ -661,7 +742,7 @@ true maximum alongside the aggregate.
 - **Read the KKT conditions at your optimum.** Which constraints are active? What are
   their multipliers? By section 11 of the KKT notes, a multiplier is the improvement in
   the objective per unit relaxation of that limit. For the bridge: how many kilograms is
-  the $\lambda_{cr} \ge 3$ rule costing? Report these numbers.
+  the slenderness rule R6 costing? Report these numbers.
 - **Singular optima.** If members can shrink to zero, a vanishing member can keep a
   finite stress limit and trap the optimizer (Kirsch, 1990; Cheng & Guo, 1997). Lower
   bounds on size avoid this in sizing problems; topology optimization needs
@@ -669,6 +750,7 @@ true maximum alongside the aggregate.
 - **Local optima.** Shape and topology variables make the problem nonconvex. Run several
   starts and report the spread.
 
+(anchor-nonlinear-pdes)=
 ### 6. Nonlinear PDEs
 
 Most real design problems are governed by nonlinear PDEs. The adjoint idea survives, but
@@ -688,7 +770,7 @@ al., 2023), which covers hyperelasticity, plasticity and 3D topology optimizatio
 torch-fem. You may use them for verification. Your graded solver must be your own, so
 that you understand every term in it.
 
-### 7. Vibe coding a solver responsibly
+### 7. Writing a solver with a coding agent
 
 Coding agents write FE codes quickly, and they write them **plausibly wrong**. The
 rules:
@@ -868,6 +950,7 @@ or over each face; cut planes or iso-surfaces for 3D fields; dark mode.
 | **Bonus: fully nonlinear** | +5 | The nonlinear component is N2 (a nonlinear state equation solved by Newton's method, with implicit-differentiation gradients), checked against a nonlinear benchmark |
 | **Bonus: path or time dependence** | +5 | A history-dependent response (plasticity, transient heating, a load sequence) with an adjoint swept backward through the history, checked against finite differences |
 | **Bonus: topology** | +5 | Material or members allowed to vanish (density, level set, or ground structure); how singular optima or checkerboards were handled; comparison with the fixed-topology design |
+| **Bonus: surrogate in the loop** | +5 | A trained surrogate (for example, your Project 3 PINO) used inside the optimizer; its gradients and optimum compared with your solver's, and the disagreements explained ([details](#anchor-from-project3)) |
 | **Bonus: design under uncertainty** | +5 | Loads, material properties, or geometry treated as uncertain (several sampled scenarios or a worst case), with gradients of the robust objective or constraint |
 
 The bonus is capped at +15.
